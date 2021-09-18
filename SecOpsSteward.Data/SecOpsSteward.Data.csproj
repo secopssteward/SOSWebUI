@@ -17,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Plugins\SecOpsSteward.Plugins\SecOpsSteward.Plugins.csproj" />
-    <ProjectReference Include="..\..\SecOpsSteward.Shared\SecOpsSteward.Shared.csproj" />
+    <ProjectReference Include="..\..\SOSCore\SecOpsSteward.Shared\SecOpsSteward.Shared.csproj" />
+    <ProjectReference Include="..\..\SOSPlugins\SecOpsSteward.Plugins\SecOpsSteward.Plugins.csproj" />
   </ItemGroup>
 
 </Project>
