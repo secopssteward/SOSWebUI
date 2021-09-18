@@ -1,0 +1,16 @@
+﻿<UserCard Style="background-color: var(--mud-palette-drawer-background); color: var(--mud-palette-drawer-text);"/>
+<MudDivider Class="mb-4"/>
+
+<MudNavMenu>
+    <MudNavLink Href="/dashboard">Dashboard</MudNavLink>
+    <MudNavGroup Title="Workflows" Expanded="true">
+        <MudNavLink Href="@("/workflows/composer/" + Guid.NewGuid())">Composer</MudNavLink>
+        <MudNavLink Href="/workflows/list">Workflow List</MudNavLink>
+        <MudNavLink Href="/workflows/recurrences">Recurrences</MudNavLink>
+    </MudNavGroup>
+    <MudNavGroup Title="System" Expanded="true">
+        <MudNavLink Href="/manage/agents">Agents</MudNavLink>
+        <MudNavLink Href="/manage/users">Users</MudNavLink>
+        <MudNavLink Href="/manage/packages">Packages</MudNavLink>
+    </MudNavGroup>
+</MudNavMenu>

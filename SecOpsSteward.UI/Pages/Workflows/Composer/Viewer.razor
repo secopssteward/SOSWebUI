@@ -1,0 +1,160 @@
+﻿@layout DynamicMainLayout
+@page "/workflows/list/{WorkflowId:guid}"
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Nodes
+@using SecOpsSteward.UI.Pages.Workflows.Dialogs
+@using SecOpsSteward.Shared.Messages
+
+<PageSections @ref="_sections">
+    <TitleBar>
+        @if (Workflow == null)
+        {
+            <span>
+                No Workflow Loaded
+            </span>
+        }
+        else
+        {
+            <span>
+                @Workflow.Name
+            </span>
+        }
+    </TitleBar>
+    <ButtonBar>
+        @*<MudIconButton Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@(!Workflow.IsLocked)" />*@
+        <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@Startup.LockDiscovery"/>
+        <MudIconButton Icon="@Icons.Material.Filled.Outbound" OnClick="@ExecuteOnAgent"/>
+    </ButtonBar>
+    <SecondaryDrawer>
+        <SecOpsSteward.UI.Pages.Workflows.Composer.Panels.ReviewDrawer
+            ClearSelectionClicked="@(() => { ComposerComponent.ClearSelection(); SelectedNode = null; })"
+            SelectedNode="@SelectedNode"/>
+    </SecondaryDrawer>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">Workflow Viewer</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This view allows you to observe created <b>Workflows</b> without modifying them. It also allows you to manually
+            execute the <b>Workflow</b>.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Clicking on the <b>Plugin</b> node in the workspace will display its saved properties on the left.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            If you want to execute the <b>Workflow</b> with the authenticated <b>User's</b> credentials, click the <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Class="icon-baseline-adjustment"/> icon
+            at the top right.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            If you want to immediately dispatch an execution request to the corresponding <b>Agent</b>(s) for the <b>Workflow</b> nodes, click the
+            <MudIcon Icon="@Icons.Material.Filled.Outbound" Class="icon-baseline-adjustment"/> icon at the top right.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            When Workflows have been executed, the nodes will change color depending on the execution results.
+        </MudText>
+
+        <IconHelp Color="@Color.Success" Icon="@Icons.Material.Filled.RunCircle"
+                  Header="If Plugin Was Executed">
+            This icon indicates if the <b>Plugin</b> associated with the <b>Workflow</b> step was executed. If the <b>Workflow</b> step was not
+            executed, that means there was an error with the execution message. This could be a signature fault or a conditions check failure. Click the node
+            to check the <b>Receipt</b> for more details.
+        </IconHelp>
+
+        <IconHelp Color="@Color.Success" Icon="@Icons.Material.Filled.CheckCircle"
+                  Header="If Plugin Succeeded">
+            This icon indicates if the <b>Plugin</b> associated with the <b>Workflow</b> step returned a successful status code. If this was not successful,
+            that means there was an error either with the <b>Plugin</b> logic or with one or more resources the <b>Plugin</b> operates upon. Click the node
+            to check the <b>Receipt</b> for more details.
+        </IconHelp>
+    </HelpDrawer>
+</PageSections>
+
+<div id="workflowDiagram" Style="height: calc(100vh - 50px);">
+    <WorkflowComposerComponent @ref="ComposerComponent" NodeSelected="@(n => { SelectedNode = n; _sections.LayoutStateHasChanged(); })"/>
+</div>
+
+@code {
+    private PageSections _sections;
+
+    protected WorkflowModel Workflow { get; set; }
+
+    private WorkflowComposerComponent ComposerComponent;
+
+    protected WorkflowComposerNode SelectedNode { get; set; }
+
+    [CascadingParameter(Name = "MessageProcessor")]
+    public WorkflowMessageProcessorService MessageProcessor { get; set; }
+
+    [Parameter]
+    public Guid? WorkflowId { get; set; }
+
+    [Inject]
+    protected NavigationManager NavManager { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (WorkflowId == null)
+            NavManager.NavigateTo("/workflows");
+        else await LoadWorkflow();
+    }
+
+    private async Task LoadWorkflow()
+    {
+        if (Workflow != null && WorkflowId == Workflow.WorkflowId) return;
+        Workflow = DbContext.Workflows.FirstOrDefault(w => w.WorkflowId == WorkflowId);
+        if (Workflow == null) NavManager.NavigateTo("/workflows");
+
+        await Task.Run(async () =>
+        {
+            await Task.Delay(500);
+            await InvokeAsync(() => ComposerComponent.Load(Workflow));
+        });
+    }
+
+    private async Task Execute()
+    {
+        MessageProcessor.SetExecutionApproval(async a => await GetApproval(a));
+
+        var steps = Workflow.CreateStepCollectionFromWorkflow();
+        steps.ForEach(s => s.RunningEntity = CurrentUser.UserId);
+
+        var wfGuid = await MessageProcessor.EnqueueImmediateRun(steps);
+        MessageProcessor.SubscribeStepReceipt(async s => { await InvokeAsync(() => { ComposerComponent.ConsumeStepReceipt(s); }); });
+        MessageProcessor.SubscribeWorkflowReceipt(async s =>
+        {
+            await InvokeAsync(() =>
+            {
+                ComposerComponent.ConsumeStepReceipt(s.Receipts.Last());
+                if (s.WorkflowComplete)
+                    MessageProcessor.SetExecutionApproval(null);
+            });
+        });
+    }
+
+    private async Task ExecuteOnAgent()
+    {
+        var steps = Workflow.CreateStepCollectionFromWorkflow();
+        var wfGuid = await MessageProcessor.EnqueueImmediateRun(steps);
+        MessageProcessor.SubscribeStepReceipt(async s => { await InvokeAsync(() => { ComposerComponent.ConsumeStepReceipt(s); }); });
+        MessageProcessor.SubscribeWorkflowReceipt(async s =>
+        {
+            await InvokeAsync(() =>
+            {
+                ComposerComponent.ConsumeStepReceipt(s.Receipts.Last());
+                if (s.WorkflowComplete)
+                    MessageProcessor.SetExecutionApproval(null);
+            });
+        });
+    }
+
+    private async Task<bool> GetApproval(EncryptedMessageEnvelope envelope)
+    {
+        var result = false;
+        await InvokeAsync(async () =>
+        {
+            var dlg = DialogService.Show<ExecutionApprovalDialog>();
+            var dlgResult = await dlg.Result;
+            if (dlgResult.Cancelled || dlgResult.Data as bool? != true) result = false;
+            result = true;
+        });
+        return result;
+    }
+
+}

@@ -1,0 +1,99 @@
+// Colors
+$bg-color: hsl(256,33,245);
+$dot-color: hsl(256,33,70);
+
+// Dimensions
+$dot-size: 1px;
+$dot-space: 22px;
+
+.port:hover {
+    background-color: #c5c5d5 !important;
+}
+
+div.configurationIncomplete:after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 30px 30px 0;
+    border-color: transparent #8A3232 transparent transparent;
+    right: 0;
+    top: 0;
+    position: absolute;
+}
+
+
+div.selected-node {
+    border: 1px solid #33aa33;
+    animation: node-glow 1s infinite alternate;
+}
+
+@keyframes node-glow {
+    from {
+        box-shadow: 0 0 5px -5px #33aa33;
+    }
+
+    to {
+        box-shadow: 0 0 5px 5px #33aa33;
+    }
+}
+
+div.default-node {
+    width: 20em !important;
+    height: auto;
+    padding: 0.8em 0.7em 0.5em 0.7em !important;
+}
+
+div.arrow-right {
+    line-height: 1.5em;
+    position: relative;
+    background: #6c757d;
+    color: #ccc;
+    text-align: center;
+    margin: 0px auto;
+}
+
+div.arrow-right:after, div.arrow-right:before {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 50%;
+    left: 100%;
+}
+
+div.arrow-right:after {
+    bottom: 0;
+    background: linear-gradient(to right bottom, #6c757d 50%, transparent 50%);
+}
+
+div.arrow-right:before {
+    top: 0;
+    background: linear-gradient(to right top, #6c757d 50%, transparent 50%);
+}
+
+#workflowDiagram {
+    background: linear-gradient(90deg, $bg-color ($dot-space - $dot-size), transparent 1%) center, linear-gradient($bg-color ($dot-space - $dot-size), transparent 1%) center, $dot-color;
+    background-size: $dot-space $dot-space;
+}
+
+.unusedNodePath 
+{
+    opacity: 0.5;
+}
+
+.activePort {
+    border-color: green !important;
+    border-width: 2px !important;
+}
+
+.skippedPort {
+    opacity: 0.5;
+    background-color: #777 !important;
+}
+
+.workflowPort {
+    width: 26px !important;
+    height: 26px !important;
+    margin: -13px !important;
+    text-align: center;
+}

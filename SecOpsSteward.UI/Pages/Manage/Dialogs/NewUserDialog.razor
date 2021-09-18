@@ -1,0 +1,150 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudTextField Value="@Username" Label="Username"/>
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudCheckBox @bind-Checked="@MessageDispatcher"
+                             UncheckedIcon="@Icons.Material.Filled.MailOutline"
+                             CheckedIcon="@Icons.Material.Filled.Mail">
+                    <MudText Typo="Typo.caption">Allow User to dispatch Workflow execution messages to Agents</MudText>
+                </MudCheckBox>
+            </MudItem>
+
+            <MudDivider DividerType="DividerType.FullWidth" />
+
+            <MudItem xs="12">
+                <MudCheckBox @bind-Checked="@GlobalAdmin">
+                    <MudText Typo="Typo.subtitle1">Global Admin</MudText>
+                    <MudText Typo="Typo.caption">Global Admins can perform all operations below.</MudText>
+                </MudCheckBox>
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Checked="@UserAdmin">
+                    <MudText Typo="Typo.subtitle1">User Admin</MudText>
+                    <MudText Typo="Typo.caption">User Admins can enroll and delete Users.</MudText>
+                </MudCheckBox>
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Checked="@PackageAdmin">
+                    <MudText Typo="Typo.subtitle1">Package Admin</MudText>
+                    <MudText Typo="Typo.caption">Package Admins can install and remove Packages.</MudText>
+                </MudCheckBox>
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Checked="@AgentAdmin">
+                    <MudText Typo="Typo.subtitle1">Agent Admin</MudText>
+                    <MudText Typo="Typo.caption">Agent Admins can enroll, configure, and remove Agents.</MudText>
+                </MudCheckBox>
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox @bind-Checked="@MessageAdmin">
+                    <MudText Typo="Typo.subtitle1">Message Admin</MudText>
+                    <MudText Typo="Typo.caption">Message Admins can read and write to all User and Agent message queues.</MudText>
+                </MudCheckBox>
+            </MudItem>
+        </MudGrid>
+        
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Success" OnClick="@AddUser">Add User</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    IRoleAssignmentService RoleAssignment { get; set; }
+
+    protected string Username { get; set; } = string.Empty;
+
+    protected IEnumerable<MudChip> SelectedRoles { get; set; } = new List<MudChip>();
+
+    protected ChimeraUserRole Role { get; set; } = ChimeraUserRole.None;
+
+    protected bool MessageDispatcher
+    {
+        get => Role.HasFlag(ChimeraUserRole.MessageDispatcher);
+        set
+        {
+            if (value) Role |= ChimeraUserRole.MessageDispatcher;
+            else Role &= ~ChimeraUserRole.MessageDispatcher;
+        }
+    }
+
+    protected bool MessageAdmin
+    {
+        get => Role.HasFlag(ChimeraUserRole.MessageAdmin);
+        set
+        {
+            if (value) Role |= ChimeraUserRole.MessageAdmin;
+            else Role &= ~ChimeraUserRole.MessageAdmin;
+        }
+    }
+
+    protected bool AgentAdmin
+    {
+        get => Role.HasFlag(ChimeraUserRole.AgentAdmin);
+        set
+        {
+            if (value) Role |= ChimeraUserRole.AgentAdmin;
+            else Role &= ~ChimeraUserRole.AgentAdmin;
+        }
+    }
+
+    protected bool GlobalAdmin
+    {
+        get => Role.HasFlag(ChimeraUserRole.GlobalAdmin);
+        set
+        {
+            if (value) Role |= ChimeraUserRole.GlobalAdmin;
+            else Role &= ~ChimeraUserRole.GlobalAdmin;
+        }
+    }
+
+    protected bool PackageAdmin
+    {
+        get => Role.HasFlag(ChimeraUserRole.PackageAdmin);
+        set
+        {
+            if (value) Role |= ChimeraUserRole.PackageAdmin;
+            else Role &= ~ChimeraUserRole.PackageAdmin;
+        }
+    }
+
+    protected bool UserAdmin
+    {
+        get => Role.HasFlag(ChimeraUserRole.UserAdmin);
+        set
+        {
+            if (value) Role |= ChimeraUserRole.UserAdmin;
+            else Role &= ~ChimeraUserRole.UserAdmin;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task AddUser()
+    {
+        try
+        {
+            var userModel = await DataBoundApi.AddUser(Username, Role);
+            Snackbar.Add("User enrollment successful.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("User enrollment failed: " + ex.Message, Severity.Error);
+        }
+        MudDialog.Close(DialogResult.Ok(Username));
+    }
+
+}

@@ -1,0 +1,191 @@
+﻿@page "/workflows/list"
+@using SecOpsSteward.Shared.Messages
+@using SecOpsSteward.Shared.Cryptography.Extensions
+@using SecOpsSteward.UI.Pages.Workflows.Composer
+@using SecOpsSteward.UI.Pages.Workflows.Dialogs
+
+<PageSections>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">Workflow List</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This page allows you to review the Workflows registered with SecOps Steward.
+            Each row has a series of icons which can be used to perform a variety of operations:
+        </MudText>
+
+        <IconHelp Color="@Color.Primary" Icon="@Icons.Material.Filled.Edit"
+                  Header="Edit Workflow">
+            If the Workflow is not locked, you can use this button to make changes to it.
+        </IconHelp>
+
+        <IconHelp Color="@Color.Tertiary" Icon="@Icons.Material.Filled.Preview"
+                  Header="View Workflow">
+            View the current layout of the workflow. This also allows you to run the workflow manually, either via the Agent or as the authenticated user.
+        </IconHelp>
+
+        <IconHelp Color="@Color.Error" Icon="@Icons.Material.Filled.Delete"
+                  Header="Delete Workflow">
+            Remove the workflow from the SecOps Steward system. If this has been locked and run, the details behind past runs will remain in the database. This action is permanent.
+        </IconHelp>
+
+        <IconHelp Color="@Color.Success" Icon="@Icons.Material.Filled.Lock"
+                  SecondColor="@Color.Error" SecondIcon="@Icons.Material.Filled.LockOpen"
+                  Header="Workflow Locked/Unlocked">
+            These icons indicate if the Workflow is or is not locked, respectively. Only locked Workflows may be used automatically. By
+            locking a Workflow, you are signing off on the safety and accuracy of its content and parameters. Once a Workflow is locked, it cannot be changed or unlocked.
+        </IconHelp>
+
+        <IconHelp Color="@Color.Success" Icon="@Icons.Material.Filled.ThumbUp"
+                  SecondColor="@Color.Error" SecondIcon="@Icons.Material.Filled.StopCircle"
+                  Header="Workflow Rights Granted">
+            This icon indicates whether the appropriate access rights for the plugins in the workflow have been granted to the Agents configured to run them.
+            Clicking this will bring you to a page with more details about the required access.
+        </IconHelp>
+    </HelpDrawer>
+</PageSections>
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudGrid>
+        <MudItem md="12">
+            @if (Workflows.Any())
+            {
+                <MudPaper Elevation="2" Class="p-0">
+                    <MudTable @ref="_table" Items="@Workflows" Hover="true" Striped="true">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Workflows</MudText>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh></MudTh>
+                            <MudTh>
+                                <MudTableSortLabel SortBy="new Func<WorkflowModel, object>(x => x.WorkflowId)">Workflow ID</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>
+                                <MudTableSortLabel SortBy="new Func<WorkflowModel, object>(x => x.Name)">Name</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>
+                                <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="new Func<WorkflowModel, object>(x => x.LastModified)">Last Modified</MudTableSortLabel>
+                            </MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Actions">
+                                @* ----- *@
+
+                                @if (!context.IsLocked)
+                                {
+                                    <MudTooltip Text="Edit Workflow">
+                                        <MudIconButton Color="@Color.Primary" Icon="@Icons.Material.Filled.Edit" Title="Edit" Link="@("/workflows/composer/" + context.WorkflowId)"/>
+                                    </MudTooltip>
+                                }
+                                <MudTooltip Text="View Workflow for Execution">
+                                    <MudIconButton Color="@Color.Tertiary" Icon="@Icons.Material.Filled.Preview" Title="Edit" Link="@("/workflows/list/" + context.WorkflowId)"/>
+                                </MudTooltip>
+
+                                @* ----- *@
+
+                                @if (!DbContext.WorkflowExecutions.Any(e => e.WorkflowId == context.WorkflowId))
+                                {
+                                    <MudTooltip Text="Delete Workflow">
+                                        <MudIconButton Color="@Color.Error" Icon="@Icons.Material.Filled.Delete" Title="Edit" OnClick="@(() => DeleteWorkflow(context))"/>
+                                    </MudTooltip>
+                                }
+
+                                @* ----- *@
+
+                                @if (context.IsLocked)
+                                {
+                                    <MudTooltip Text="@("Workflow is locked and cannot be modified (locked by " + context.GrantingUser + ")")">
+                                        <MudIconButton Color="Color.Success" Icon="@Icons.Material.Filled.Lock"/>
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    <MudTooltip Text="Lock Workflow to prevent modification">
+                                        <MudIconButton Color="Color.Error" Icon="@Icons.Material.Filled.LockOpen" OnClick="@(() => LockWorkflow(context))"/>
+                                    </MudTooltip>
+                                }
+
+                                @* ----- *@
+
+                                @if (context.IsAgentSetGranted)
+                                {
+                                    <MudTooltip Text="All Agents have the rights necessary to execute the plugins in this workflow">
+                                        <MudIconButton Color="Color.Success" Icon="@Icons.Material.Filled.ThumbUp" Link="@("/workflows/grants/" + context.WorkflowId)"/>
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    <MudTooltip Text="Agents do not yet have the rights necessary to execute the plugins in this workflow; click to add those grants">
+                                        <MudIconButton Color="Color.Error" Icon="@Icons.Material.Filled.StopCircle" Link="@("/workflows/grants/" + context.WorkflowId)"/>
+                                    </MudTooltip>
+                                }
+
+                                @* ----- *@
+                            </MudTd>
+                            <MudTd DataLabel="Workflow ID">
+                                <MudTooltip Text="@context.WorkflowId.ToString()">
+                                    @context.WorkflowId.ShortId()
+                                </MudTooltip>
+                            </MudTd>
+                            <MudTd DataLabel="Name">@context.Name</MudTd>
+                            <MudTd DataLabel="Last Modified">@context.LastModified.DateTime</MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new[] {10, 25, 50, 100}"/>
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+            else
+            {
+                <ErrorText Title="No Saved Workflows">
+                    You have not yet saved a Workflow. Head over to the <MudLink Href="/workflow/composer">Composer</MudLink> to get started.
+                </ErrorText>
+            }
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code
+{
+    [Inject]
+    protected ICryptographicService CryptoService { get; set; }
+
+    private MudTable<WorkflowModel> _table;
+
+    protected List<WorkflowModel> Workflows { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Workflows = await DbContext.Workflows.ToListAsync();
+    }
+
+    protected async Task LockWorkflow(WorkflowModel model)
+    {
+        if (model.IsLocked) return;
+        var dlg = DialogService.Show<LockApprovalDialog>("Lock Workflow?");
+        var result = await dlg.Result;
+
+        if (result.Cancelled || (bool) result.Data != true) return;
+
+        DbContext.Attach(model);
+        model.GrantingUser = DbContext.Users.First(u => u.UserId == CurrentUser.UserId.Id);
+        model.LastModified = DateTime.UtcNow;
+
+        var steps = model.CreateStepCollectionFromWorkflow();
+        var wfAuth = new WorkflowExecutionMessage(CurrentUser.UserId, steps);
+        await wfAuth.Sign(CryptoService, CurrentUser.UserId, CurrentUser.Name);
+
+        model.WorkflowAuthorization = wfAuth;
+
+        await DbContext.SaveChangesAsync();
+    }
+
+    protected async Task DeleteWorkflow(WorkflowModel model)
+    {
+        var result = await DialogService.ShowMessageBox("Delete Workflow", "Do you want to delete this workflow? This action is permanent.", "Yes", "No");
+        if (result.GetValueOrDefault(false))
+        {
+            DbContext.Workflows.Remove(model);
+            await DbContext.SaveChangesAsync();
+            Workflows.Remove(model);
+        }
+    }
+}

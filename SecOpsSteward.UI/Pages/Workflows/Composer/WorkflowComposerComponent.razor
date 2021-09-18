@@ -1,0 +1,349 @@
+﻿@using SecOpsSteward.Plugins.Configurable
+@using SecOpsSteward.Shared.DiscoveryWorkflow
+@using SecOpsSteward.Shared.Messages
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Links
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Nodes
+@using Blazor.Diagrams.Core
+@using Blazor.Diagrams.Core.Models
+@using System.Text.Json
+@using System.Threading
+@using Blazor.Diagrams.Components
+@using SecOpsSteward.Plugins
+<CascadingValue Value="@Diagram">
+    @if (Diagram != null)
+    {
+        <DiagramCanvas>
+        </DiagramCanvas>
+    }
+</CascadingValue>
+
+@code {
+
+    [Parameter]
+    public EventCallback<WorkflowComposerNode> NodeSelected { get; set; }
+
+    private Diagram Diagram { get; set; }
+
+    public Guid LoadedWorkflowId { get; set; }
+    public WorkflowModel LoadedWorkflow { get; set; }
+
+    private bool _readOnly;
+
+    public bool ReadOnly
+    {
+        get => _readOnly;
+        set
+        {
+            _readOnly = value;
+            Diagram.Locked = value;
+        }
+    }
+
+    public string Save()
+    {
+        return JsonSerializer.Serialize(Diagram.SaveWorkflow());
+    }
+
+    protected override void OnInitialized()
+    {
+        CreateNew();
+    }
+
+    public void Load(WorkflowModel value)
+    {
+        Diagram.Links.Clear();
+        Diagram.Groups.ToList().ForEach(g => Diagram.RemoveGroup(g));
+        Diagram.Nodes.Clear();
+
+        LoadedWorkflow = value;
+        LoadedWorkflowId = value.WorkflowId;
+        if (!string.IsNullOrEmpty(value.WorkflowJson))
+        {
+            Diagram.LoadWorkflow(value.SavedData, DbContext.Plugins.Include(p => p.ManagedService).ToList());
+            StateHasChanged();
+        }
+        StateHasChanged();
+    }
+
+    public void CreateNew()
+    {
+        var options = new DiagramOptions
+        {
+            DeleteKey = "Delete",
+            DefaultNodeComponent = null,
+            GridSize = 40,
+            Groups = new DiagramGroupOptions {Enabled = false},
+            AllowMultiSelection = false,
+            AllowPanning = true,
+            Zoom = new DiagramZoomOptions {Enabled = true, Inverse = false, ScaleFactor = 0.1},
+            Links = new DiagramLinkOptions
+            {
+                DefaultLinkComponent = null,
+                DefaultColor = "blue",
+                DefaultSelectedColor = "red"
+            },
+            EnableVirtualization = true
+        };
+        Diagram = new Diagram(options);
+
+        Diagram.SelectionChanged += e =>
+        {
+            Diagram.Nodes.Cast<WorkflowComposerNode>().ToList().ForEach(n => n.IsSelected = false);
+
+            if (e is LinkModel)
+            {
+    // TODO: Link description goes here
+    //       Maybe shared variables?
+            }
+            else
+            {
+                var wfcNode = e as WorkflowComposerNode;
+                wfcNode.IsSelected = true;
+                NodeSelected.InvokeAsync(wfcNode);
+            }
+        };
+
+        Diagram.RegisterModelComponent<WorkflowComposerNode, PackageWidget>();
+        Diagram.Refresh();
+
+        StateHasChanged();
+    }
+
+    public void ClearSelection()
+    {
+        Diagram.UnselectAll();
+        Diagram.Nodes.Cast<WorkflowComposerNode>().ToList().ForEach(n =>
+        {
+            n.IsSelected = false;
+            n.RefreshAll();
+        });
+        StateHasChanged();
+    }
+
+    /// <summary>
+    ///     Add all steps from a pre-fabricated workflow template
+    /// </summary>
+    /// <param name="template">Template to apply</param>
+    /// <param name="configurations">Mapped template configurations to apply</param>
+    public void AddWorkflowTemplate(WorkflowTemplateModel template, IDictionary<string, object> configurations)
+    {
+        var approximatedNodeWidth = 200;
+        var approximatedNodeHeight = 100;
+
+    // TODO: This contains a zero step ("go to dependents")
+    // Need to figure out how to rewrite templating
+
+        var allPkgs = DbContext.Plugins.Include(p => p.ManagedService).ToList();
+        var orderedPkgs = template.Participants
+            .OrderBy(p => p.Index)
+            .Where(p => p.PackageId != Guid.Empty)
+            .Select(p => allPkgs.First(pkg => pkg.PluginId == p.PackageId))
+            .ToList();
+
+    // create nodes
+        var orderedNodes = new List<WorkflowComposerNode>();
+        double x = 10, y = 10;
+        foreach (var pkg in orderedPkgs)
+        {
+            if (orderedNodes.Any() &&
+                x > Diagram.Container.Width - approximatedNodeWidth)
+            {
+                x = 10;
+                y += approximatedNodeHeight + 50;
+            }
+            orderedNodes.Add(new WorkflowComposerNode(pkg, x, y));
+            x += approximatedNodeWidth + 100;
+            y += 20;
+        }
+
+    // map config
+        template.MapTemplateConfigurationToPlugins(configurations as Dictionary<string, object>, orderedNodes.Select(p => p.Parameters).ToList());
+
+        OutputPort lastOutput = null;
+        foreach (var n in orderedNodes)
+        {
+            AddNode(n);
+            if (lastOutput != null)
+                Diagram.Links.Add(new LinkModel(lastOutput, n.SourcePort));
+            lastOutput = n.ResultPorts[CommonResultCodes.Success];
+        }
+
+        Diagram.Refresh();
+
+        StateHasChanged();
+    }
+
+
+    /// <summary>
+    ///     Add all steps from a pre-fabricated workflow template
+    /// </summary>
+    /// <param name="segment">Route segment</param>
+    public void AddWorkflowDefinitionSteps(RouteSegmentPossibility segment)
+    {
+        var approximatedNodeWidth = 200;
+        var approximatedNodeHeight = 100;
+
+        var allPkgs = DbContext.Plugins.Include(p => p.ManagedService).ToList();
+
+    // create nodes
+        var orderedNodes = new List<WorkflowComposerNode>();
+        double x = 10, y = 10;
+        foreach (var participant in segment)
+        {
+            if (orderedNodes.Any() &&
+                x > Diagram.Container.Width - approximatedNodeWidth)
+            {
+                x = 10;
+                y += approximatedNodeHeight + 50;
+            }
+
+            var mappedPackage = allPkgs.First(p => p.PluginId == participant.PackageId);
+            var newNode = new WorkflowComposerNode(mappedPackage, x, y);
+
+    // apply template configuration values
+            foreach (var item in segment.TemplateConfigurationValues.Where(v => v.Value != default))
+            {
+                if (newNode.Parameters.Parameters.Any(p => p.Name == item.Key))
+                    newNode.Parameters[item.Key] = item.Value;
+            }
+
+    // apply service configuration
+            var serviceCfg = participant.ServiceConfiguration.Configuration.AsDictionaryProperties();
+            foreach (var p in newNode.Parameters.Parameters)
+            {
+                if (serviceCfg.ContainsKey(p.Name) && serviceCfg[p.Name] != default)
+                    p.Value = serviceCfg[p.Name];
+            }
+
+    // apply mapping values on top of everything else
+            foreach (var map in participant.ConfigurationMappings)
+            {
+    // map.Key => Source field, map.Value => Destination field
+
+    // try to pull from the template parameters first
+                if (newNode.Parameters.Parameters.Any(p => p.Name == map.Value) &&
+                    segment.TemplateConfigurationValues.ContainsKey(map.Key) &&
+                    segment.TemplateConfigurationValues[map.Key] != default)
+                    newNode.Parameters[map.Value] = segment.TemplateConfigurationValues[map.Key];
+
+    // then pull/overwrite from the parameters which exist already on the node
+                if (newNode.Parameters.Parameters.Any(p => p.Name == map.Value) &&
+                    serviceCfg.ContainsKey(map.Key) &&
+                    serviceCfg[map.Key] != default)
+                    newNode.Parameters[map.Value] = serviceCfg[map.Key];
+            }
+
+            orderedNodes.Add(newNode);
+            x += approximatedNodeWidth + 100;
+            y += 20;
+        }
+
+        OutputPort lastOutput = null;
+        foreach (var n in orderedNodes)
+        {
+            AddNode(n);
+            if (lastOutput != null)
+                Diagram.Links.Add(new LinkModel(lastOutput, n.SourcePort));
+            lastOutput = n.ResultPorts[CommonResultCodes.Success];
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    ///     Add a node for a specific package
+    /// </summary>
+    /// <param name="package">Package to add</param>
+    public void AddPackageNode(PluginMetadataModel package)
+    {
+        var thisStepNode = new WorkflowComposerNode(package, 100, 100);
+        AddNode(thisStepNode);
+
+        StateHasChanged();
+    }
+
+    private void AddNode(WorkflowComposerNode node)
+    {
+        var paddingX = 50;
+        var paddingY = 100;
+
+        if (!Diagram.Nodes.Any())
+        {
+            node.SetPosition(Diagram.Container.Left + paddingX, Diagram.Container.Top + paddingY);
+            Diagram.Nodes.Add(node);
+            return;
+        }
+
+        var lastNode = Diagram.Nodes.OrderByDescending(d => d.Position.Y).ThenByDescending(d => d.Position.X).First();
+
+        var timeout = DateTime.UtcNow.AddMinutes(1);
+        while (lastNode.Size == null && DateTime.UtcNow < timeout)
+        {
+            Thread.Sleep(100);
+        }
+
+        double x, y;
+        if (lastNode.Position.X + lastNode.Size.Width > Diagram.Container.Right - Diagram.Container.Width / 10)
+        {
+    // wraps
+            x = Diagram.Container.Left + paddingX;
+            y = lastNode.Position.Y + lastNode.Size.Height + paddingY;
+        }
+        else
+        {
+            x = lastNode.Position.X + lastNode.Size.Width + paddingX;
+            y = lastNode.Position.Y;
+        }
+
+        node.SetPosition(x, y);
+        Diagram.Nodes.Add(node);
+    }
+
+    /// <summary>
+    ///     Apply an incoming step receipt to the workflow steps loaded in the workspace
+    /// </summary>
+    /// <param name="stepReceipt">Step receipt to apply</param>
+    public void ConsumeStepReceipt(ExecutionStepReceipt stepReceipt)
+    {
+        var target = Diagram.Nodes
+            .OfType<WorkflowComposerNode>()
+            .First(n => n.WorkflowStepId == stepReceipt.StepId);
+
+        target.Receipt = stepReceipt;
+
+        HighlightResultPort(
+            target,
+            stepReceipt.StepExecutionResult == ResultCodes.RanPluginOk ? NodeStates.Success : NodeStates.Failed,
+            stepReceipt.PluginResult.ResultCode);
+
+        StateHasChanged();
+    }
+
+    private void HighlightResultPort(WorkflowComposerNode node, NodeStates state, string resultCode = "")
+    {
+        node.Success = state;
+
+        if (node.ResultPorts.ContainsKey(resultCode))
+        {
+            node.ResultPorts[resultCode].IsActivated = true;
+            foreach (var link in node.ResultPorts[resultCode].Links.Cast<LinkModel>())
+            {
+                link.Color = "green";
+            }
+        }
+        foreach (var item in node.ResultPorts.Where(p => p.Key != resultCode))
+        {
+            item.Value.IsSkipped = true;
+            foreach (var link in item.Value.Links.Cast<LinkModel>())
+            {
+                link.Color = "gray";
+                var nextTarget = link.TargetPort.Parent as WorkflowComposerNode;
+                HighlightResultPort(nextTarget, NodeStates.Skipped);
+            }
+        }
+
+        node.RefreshAll();
+        node.RefreshLinks();
+    }
+
+}

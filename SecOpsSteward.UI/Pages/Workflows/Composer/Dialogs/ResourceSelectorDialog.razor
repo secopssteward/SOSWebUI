@@ -1,0 +1,44 @@
+﻿@using SecOpsSteward.Shared.Packaging
+@using SecOpsSteward.Plugins.Discovery
+<MudDialog Class="pb-0 mb-0" Style="min-width: 25em;">
+    <DialogContent>
+        <ServiceResourceSelectorWidget Service="@Service" SelectedResource="@Resource" SelectedResourceChanged="@SetResource"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Success" OnClick="@ApplySettings">Apply</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    public AzureCurrentCredentialFactory PlatformFactory { get; set; }
+
+    [Inject]
+    public PackageActionsService PackageActions { get; set; }
+
+    [Parameter]
+    public ManagedServiceModel Service { get; set; }
+
+    protected DiscoveredServiceConfiguration Resource { get; set; }
+
+    protected void SetResource(DiscoveredServiceConfiguration resource)
+    {
+        Resource = resource;
+    }
+
+    protected void ApplySettings()
+    {
+        MudDialog.Close(DialogResult.Ok(Resource));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+}

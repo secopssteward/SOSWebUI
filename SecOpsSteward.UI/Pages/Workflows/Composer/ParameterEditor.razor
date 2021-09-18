@@ -1,0 +1,84 @@
+﻿@using SecOpsSteward.Plugins.Configurable
+@using System.Text.Json
+@if (Parameter.ExpectedType == typeof(string).FullName)
+{
+    <MudTextField Margin="Margin.None" Immediate="false"
+                  ReadOnly="@ReadOnly"
+                  Required="@Parameter.Required"
+                  T="string" Text="@ValueAsStr"
+                  Label="@Parameter.DisplayName"
+                  HelperText="@Parameter.Description"
+                  TextChanged="@(t => { ValueAsStr = t; ParameterChanged.InvokeAsync(Parameter); })"/>
+}
+else if (Parameter.ExpectedType == typeof(int).FullName)
+{
+    <MudNumericField Margin="Margin.None" Immediate="false" T="int" Required="@Parameter.Required"
+                     Value="@ValueAsInt" ReadOnly="@ReadOnly"
+                     Label="@Parameter.DisplayName"
+                     HelperText="@Parameter.Description"
+                     ValueChanged="@(t => { ValueAsInt = t; ParameterChanged.InvokeAsync(Parameter); })"/>
+}
+else if (Parameter.ExpectedType == typeof(bool).FullName)
+{
+    <MudCheckBox T="bool" Checked="@ValueAsBool" Required="@Parameter.Required"
+                 Label="@Parameter.DisplayName"
+                 Dense="true" ReadOnly="@ReadOnly"
+                 CheckedChanged="@(c => { ValueAsBool = c; ParameterChanged.InvokeAsync(Parameter); })"/>
+}
+
+
+@code
+{
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public ConfigurableObjectParameter Parameter { get; set; }
+
+    [Parameter]
+    public EventCallback<ConfigurableObjectParameter> ParameterChanged { get; set; }
+
+    public string ValueAsStr
+    {
+        get => ResolveJsonValueKind(Parameter.Value) == null ? "" : ResolveJsonValueKind(Parameter.Value).ToString();
+        set => Parameter.Value = value;
+    }
+
+    public bool ValueAsBool
+    {
+        get => ResolveJsonValueKind(Parameter.Value) == null ? false : (bool) ResolveJsonValueKind(Parameter.Value);
+        set => Parameter.Value = value;
+    }
+
+    public int ValueAsInt
+    {
+        get => ResolveJsonValueKind(Parameter.Value) == null ? 0 : (int) ResolveJsonValueKind(Parameter.Value);
+        set => Parameter.Value = value;
+    }
+
+    private object ResolveJsonValueKind(object obj)
+    {
+        if (obj is JsonElement)
+        {
+            var e = (JsonElement) obj;
+            switch (e.ValueKind)
+            {
+                case JsonValueKind.True:
+                    return true;
+                case JsonValueKind.False:
+                    return false;
+                case JsonValueKind.Undefined:
+                case JsonValueKind.Null:
+                    return null;
+                case JsonValueKind.Number:
+                    return e.GetInt32();
+                case JsonValueKind.String:
+                    return e.GetString();
+                case JsonValueKind.Object:
+                case JsonValueKind.Array:
+                    throw new Exception("I have no idea what to do with this.");
+            }
+        }
+        return obj;
+    }
+}

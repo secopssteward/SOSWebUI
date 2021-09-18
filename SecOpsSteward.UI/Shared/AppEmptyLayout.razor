@@ -1,0 +1,42 @@
+﻿@using SecOpsSteward.Shared.Packaging
+@inherits LayoutComponentBase
+
+<CascadingAuthenticationState>
+    <CascadingValue Value="@MessageProcessor" Name="MessageProcessor">
+        @if (Startup.FirstRun)
+        {
+            <MudOverlay Visible="true" DarkBackground="true" AutoClose="true" OnClick="@(() => Startup.FirstRun = false)">
+                <CenteredPaperComponent>
+                    <SecOpsSteward.UI.Pages.WelcomeComponent/>
+                </CenteredPaperComponent>
+            </MudOverlay>
+        }
+        @Body
+    </CascadingValue>
+</CascadingAuthenticationState>
+
+@inject PublicPackageRepository PackageService
+
+@code
+{
+    [Inject]
+    protected NavigationManager NavManager { get; set; }
+
+    [Inject]
+    public WorkflowMessageProcessorService MessageProcessor { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!DbContext.Users.Any())
+        {
+            Startup.FirstRun = true;
+            StateHasChanged();
+
+            Snackbar.Add("Registering user " + CurrentUser.Email, Severity.Info);
+            await DataBoundApi.AddUser(CurrentUser, ChimeraUserRole.GlobalAdmin);
+            Snackbar.Add("Done registering user " + CurrentUser.Email, Severity.Success);
+        }
+        else
+            MessageProcessor.StartBackgroundTask(); // start polling for messages
+    }
+}

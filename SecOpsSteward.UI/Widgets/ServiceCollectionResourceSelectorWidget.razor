@@ -1,0 +1,156 @@
+﻿@using Microsoft.Azure.Management.ResourceManager.Fluent
+@using SecOpsSteward.Plugins.Discovery
+@using SecOpsSteward.Shared.DiscoveryWorkflow
+@using SecOpsSteward.Shared.Packaging
+@using Microsoft.Azure.Management.Fluent
+<MudContainer Class="p-3 mb-5">
+    <MudItem xs="12">
+        <MudSelect T="ISubscription" Label="Subscription" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                   Value="@SelectedSubscription" ValueChanged="@SetAzureSubscription">
+            @foreach (var subscription in Subscriptions)
+            {
+                <MudSelectItem T="ISubscription" Value="@subscription">@subscription.DisplayName</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+
+    @if (ResourceGroups != null && ResourceGroups.Any())
+    {
+        <MudItem xs="12">
+            <MudSelect T="string" Label="Resource Group" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                       ToStringFunc="@(s => s == null ? "No resource groups selected" : ResourceGroups.First(rg => rg.Id == s).Name)"
+                       MultiSelectionTextFunc="@(t => string.Join(", ", t))" MultiSelection="true"
+                       @bind-Value="@SelectedRG"
+                       SelectedValues="@SelectedRGs" SelectedValuesChanged="@(v => SelectedRGs = v)"
+                       OnBlur="@(b => SetResourceGroups())">
+                @foreach (var resourceGroup in ResourceGroups.OrderBy(rg => rg.Name))
+                {
+                    <MudSelectItem T="string" Value="@resourceGroup.Id">@resourceGroup.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
+
+    @if (_resourcesLoaded)
+    {
+        <MudItem xs="12">
+            <MudSelect T="DiscoveredServiceConfiguration" Label="Resource" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                       ToStringFunc="@(s => s == null ? "No resource groups selected" : s.DescriptiveName)"
+                       MultiSelectionTextFunc="@(t => t.Count + " resources selected")" MultiSelection="true"
+                       SelectedValues="@SelectedResources" SelectedValuesChanged="@SetResources"
+                       OnBlur="@(b => { })">
+                @foreach (var resource in Resources.OrderBy(r => r.DescriptiveName))
+                {
+                    <MudSelectItem T="DiscoveredServiceConfiguration" Value="@resource">@resource.DescriptiveName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
+    else if (_resourcesLoading)
+    {
+        <MudSkeleton/>
+    }
+</MudContainer>
+
+@code
+{
+    public HashSet<string> SelectedRGs { get; set; } = new();
+    private string SelectedRG;
+
+    // Select N resources from all given ManagedServiceModels
+
+    protected IEnumerable<ISubscription> Subscriptions { get; set; } = new List<ISubscription>();
+    protected IEnumerable<IResourceGroup> ResourceGroups { get; set; } = new List<IResourceGroup>();
+    protected List<DiscoveredServiceConfiguration> Resources { get; set; } = new();
+
+    [Inject]
+    public AzureCurrentCredentialFactory InjectedAzure { get; set; }
+
+    [Inject]
+    public DiscoverySequencerService DiscoveryService { get; set; }
+
+    [Inject]
+    public PackageActionsService PackageActions { get; set; }
+
+    [Parameter]
+    public IEnumerable<ManagedServiceModel> Services { get; set; }
+
+    [Parameter]
+    public ISubscription SelectedSubscription { get; set; }
+
+    [Parameter]
+    public EventCallback<ISubscription> SelectedSubscriptionChanged { get; set; }
+
+    [Parameter]
+    public HashSet<IResourceGroup> SelectedResourceGroups { get; set; }
+
+    [Parameter]
+    public EventCallback<HashSet<IResourceGroup>> SelectedResourceGroupsChanged { get; set; }
+
+    [Parameter]
+    public HashSet<DiscoveredServiceConfiguration> SelectedResources { get; set; }
+
+    [Parameter]
+    public EventCallback<HashSet<DiscoveredServiceConfiguration>> SelectedResourcesChanged { get; set; }
+
+    private bool _resourcesLoaded;
+    private bool _resourcesLoading;
+    private IAzure _azure;
+
+    protected override void OnInitialized()
+    {
+        Subscriptions = InjectedAzure.GetCredential().GetAzure().Subscriptions.List();
+    }
+
+    protected async Task SetAzureSubscription(ISubscription subscription)
+    {
+        SelectedSubscription = subscription;
+        await SelectedSubscriptionChanged.InvokeAsync(SelectedSubscription);
+
+        _azure = InjectedAzure.GetCredential(SelectedSubscription.SubscriptionId).GetAzure();
+        ResourceGroups = await _azure.ResourceGroups.ListAsync();
+    }
+
+    protected async Task SetResourceGroups()
+    {
+        SelectedResourceGroups = new HashSet<IResourceGroup>(SelectedRGs.Select(s => ResourceGroups.First(rg => rg.Id == s)));
+
+        _resourcesLoading = true;
+        _resourcesLoaded = false;
+        await SelectedResourceGroupsChanged.InvokeAsync(SelectedResourceGroups);
+
+        await Task.WhenAll(Services.Select(service => Task.Run(async () =>
+        {
+            foreach (var rg in SelectedRGs)
+            {
+                var thisRg = ResourceGroups.First(r => r.Id == rg);
+                var thisCfg = new AzureSharedConfiguration
+                {
+                    TenantId = InjectedAzure.GetCredential().TenantId,
+                    SubscriptionId = SelectedSubscription.SubscriptionId,
+                    ResourceGroup = thisRg.Name
+                };
+                var thisCfgString = ChimeraSharedHelpers.SerializeToString(thisCfg);
+                var discovered = await PackageActions.Discover(service.ManagedServiceId, ChimeraSharedHelpers.SerializeToString(thisCfg));
+
+                foreach (var el in discovered)
+                {
+                    lock (Resources)
+                    {
+                        if (!Resources.Any(r => r.DescriptiveName == el.DescriptiveName))
+                            Resources.Add(el);
+                    }
+                }
+            }
+        })));
+
+        _resourcesLoading = false;
+        _resourcesLoaded = true;
+    }
+
+    protected async Task SetResources(HashSet<DiscoveredServiceConfiguration> resources)
+    {
+        SelectedResources = resources;
+        await SelectedResourcesChanged.InvokeAsync(SelectedResources);
+    }
+}

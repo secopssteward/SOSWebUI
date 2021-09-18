@@ -1,0 +1,86 @@
+﻿@inherits LayoutComponentBase
+@layout AppEmptyLayout
+
+<CascadingValue Value="@(this)">
+    <MudLayout>
+        <MudAppBar Dense="true" Style="z-index: 3000">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())"/>
+            <img src="/css/SOS_Logo_White.svg" class="ml-1 mr-5" style="height: 2em" title="SecOps Steward"/>
+            @titleBar
+            <MudSpacer/>
+            @buttonBar
+
+            @if (Startup.RunDemoMode)
+            {
+                <MudTooltip Text="In this mode, the system does not modify any real data, and information is regularly purged.">
+                    <MudChip Size="@Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.AutoAwesome">Demo Mode</MudChip>
+                </MudTooltip>
+            }
+            @{ var helpColor = _helpDrawerOpen ? Color.Primary : Color.Inherit; }
+            <MudTooltip Text="Contextual help for this page">
+                <MudIconButton Disabled="@(helpContent == null)" Icon="@Icons.Material.Filled.HelpOutline" Color="@helpColor" OnClick="@HelpDrawerToggle" id="helpCircleIcon"/>
+            </MudTooltip>
+            <GenerateBugReportComponent />
+            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" Link="/signout-oidc"/>
+        </MudAppBar>
+        <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Docked" Style="z-index: 5000;">
+            <NavMenu/>
+        </MudDrawer>
+        @if (secondaryDrawer != null)
+        {
+            <MudMainContent Style="padding-top: calc(var(--mud-appbar-min-height) - 16px); position: relative;">
+                @secondaryDrawer
+                @Body
+            </MudMainContent>
+        }
+        else
+        {
+            <MudMainContent Style="position: relative;">
+                @Body
+            </MudMainContent>
+        }
+        @if (helpContent != null)
+        {
+            <HelpDrawerComponent @bind-HelpDrawerOpen="@_helpDrawerOpen">
+                @helpContent
+            </HelpDrawerComponent>
+        }
+    </MudLayout>
+</CascadingValue>
+
+@code {
+    bool _drawerOpen = true;
+    bool _helpDrawerOpen;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    void HelpDrawerToggle()
+    {
+        _helpDrawerOpen = !_helpDrawerOpen;
+    }
+
+    private RenderFragment titleBar;
+    private RenderFragment buttonBar;
+    private RenderFragment secondaryDrawer;
+    private RenderFragment body;
+    private RenderFragment helpContent;
+
+    public void SetDynamicLayout(RenderFragment titleBar, RenderFragment buttonBar, RenderFragment secondaryDrawer, RenderFragment body, RenderFragment helpContent)
+    {
+        this.titleBar = titleBar;
+        this.buttonBar = buttonBar;
+        this.secondaryDrawer = secondaryDrawer;
+        this.body = body;
+        this.helpContent = helpContent;
+        StateHasChanged();
+    }
+
+    public void LayoutStateHasChanged()
+    {
+        StateHasChanged();
+    }
+
+}

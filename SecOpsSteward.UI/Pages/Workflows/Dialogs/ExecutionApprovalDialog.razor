@@ -1,0 +1,33 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle1" Align="Align.Center">
+            A Workflow execution has been received. Would you like to process it?
+        </MudText>
+
+        <MudText Typo="Typo.body2" Align="Align.Center">
+            This execution will be performed as the logged in user, @CurrentUser.Email
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="@Cancel">No</MudButton>
+        <MudButton Color="Color.Success" OnClick="@Process">Yes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+
+    private void Process()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

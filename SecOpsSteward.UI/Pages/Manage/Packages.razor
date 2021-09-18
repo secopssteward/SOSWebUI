@@ -1,0 +1,221 @@
+﻿@page "/manage/packages"
+@using SecOpsSteward.Shared.Cryptography.Extensions
+@using SecOpsSteward.Shared.Packaging
+@using SecOpsSteward.Shared.Packaging.Metadata
+
+<PageSections>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">Package List</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This page allows you to list the <b>Packages</b> which are installed in the system and install new <b>Packages</b> from the
+            publicly available package repository. Source code for all public plugins can be found in the source control
+            repository.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            A <b>Package</b> contains at least one <b>Managed Service</b>, which describes a resource which is targeted by <b>Plugins</b>.
+            It also contains at least one <b>Plugin</b>, which performs a specific action against a resource with a given configuration.
+            Finally, packaged <b>Managed Services</b> can contain <b>Templates</b>, a collection of multiple <b>Plugins</b> which operate together
+            to perform a larger action. One example might be rotating a service out of availability and back into it later.
+        </MudText>
+    </HelpDrawer>
+</PageSections>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudGrid>
+        <MudItem md="12">
+            <MudPaper Elevation="2" Class="p-0">
+                <MudTable T="ContainerModel"
+                          Items="@LocalContainerModels"
+                          MultiSelection="true" Hover="true" Striped="true" Dense="true"
+                          @bind-SelectedItems="@LocalSelectedContainerModels">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Installed Packages</MudText>
+                        <MudSpacer/>
+                        <MudButton StartIcon="@Icons.Material.Filled.Delete" IconColor="@Color.Error"
+                                   Disabled="@(!LocalSelectedContainerModels.Any())"
+                                   @onclick="@(() => Task.WhenAll(LocalSelectedContainerModels.Select(m => RemovePackage(m))))">
+                            Delete Selected Packages
+                        </MudButton>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<ContainerModel, object>(x => x.ContainerId)">Container ID</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<ContainerModel, object>(x => x.Version)">Version</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<ContainerModel, object>(x => x.ManagedServices.First().Name)">Services</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>Plugins</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Plugin ID">@context.ContainerId.ShortId()</MudTd>
+                        <MudTd DataLabel="Version">@context.Version</MudTd>
+                        <MudTd DataLabel="Services">
+                            @foreach (var s in context.ManagedServices)
+                            {
+                                <p>@s.Name</p>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Plugins">
+                            @foreach (var s in context.ManagedServices.SelectMany(ms => ms.Plugins))
+                            {
+                                <p>@s.Name</p>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] {10, 25, 50}"/>
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+
+        <MudItem md="12" Class="mt-3">
+            <MudPaper Elevation="2" Class="p-0">
+                <MudTable T="ContainerModel"
+                          Items="@PublicContainerModels"
+                          MultiSelection="true" Hover="true" Striped="true" Dense="true"
+                          @bind-SelectedItems="@PublicSelectedContainerModels">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Available Public Packages</MudText>
+                        <MudSpacer/>
+                        <MudButton StartIcon="@Icons.Material.Filled.Download" IconColor="@Color.Success"
+                                   Disabled="@(!PublicSelectedContainerModels.Any())"
+                                   @onclick="@(() => Task.WhenAll(PublicSelectedContainerModels.Select(m => TransferPackage(m))))">
+                            Install Selected Packages
+                        </MudButton>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<ContainerModel, object>(x => x.ContainerId)">Container ID</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<ContainerModel, object>(x => x.Version)">Version</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<ContainerModel, object>(x => x.ManagedServices.First().Name)">Services</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>Plugins</MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate>
+                        <MudTd DataLabel="Plugin ID">@context.ContainerId.ShortId()</MudTd>
+                        <MudTd DataLabel="Version">@context.Version</MudTd>
+                        <MudTd DataLabel="Services">
+                            @foreach (var s in context.ManagedServices)
+                            {
+                                <p>@s.Name</p>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Plugins">
+                            @foreach (var s in context.ManagedServices.SelectMany(ms => ms.Plugins))
+                            {
+                                <p>@s.Name</p>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] {10, 25, 50}"/>
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@inject IPackageRepository PackageRepo
+@inject PublicPackageRepository PackageService
+
+@code
+{
+    private Dictionary<string, ContainerMetadata> PublicPackageModelUrls { get; set; } = new();
+
+    protected byte[] IndexKey { get; set; }
+
+    public List<ContainerModel> LocalContainerModels { get; set; } = new();
+    public HashSet<ContainerModel> LocalSelectedContainerModels { get; set; } = new();
+
+    public List<ContainerModel> PublicContainerModels { get; set; } = new();
+    public HashSet<ContainerModel> PublicSelectedContainerModels { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh(bool localOnly = false)
+    {
+        StateHasChanged();
+
+        await Task.Run(async () =>
+        {
+            if (!localOnly)
+            {
+    // get public packages
+                IndexKey = await PackageService.GetIndexKey();
+                PublicPackageModelUrls = await PackageService.ListPackages();
+                PublicContainerModels = PublicPackageModelUrls.Select(u => ContainerModel.FromMetadata(u.Value)).ToList();
+            }
+
+    // get local packages
+            LocalContainerModels = await DbContext.Containers.Include(c => c.ManagedServices).ToListAsync();
+
+    // resolve differences
+            PublicContainerModels.RemoveAll(pub => LocalContainerModels.Any(local => pub.ContainerId == local.ContainerId));
+            LocalContainerModels.RemoveAll(pub => PublicContainerModels.Any(local => pub.ContainerId == local.ContainerId));
+        });
+
+        StateHasChanged();
+    }
+
+    protected async Task TransferPackage(ContainerModel metadata, string url = null)
+    {
+        await Task.Yield();
+        if (string.IsNullOrEmpty(url))
+            url = PublicPackageModelUrls.First(u => u.Value.ContainerId.Id == metadata.ContainerId).Key;
+
+        ChimeraContainer pkg = null;
+        Snackbar.Add("Installing package '" + metadata.ContainerId.ShortId() + "' (" + string.Join(", ", metadata.ManagedServices.Select(m => m.Name)) + ")");
+        _ = TryExecute(async () =>
+        {
+            pkg = await PackageService.GetPackage(url);
+            if (!pkg.GetMetadata().PubliclyVerify(IndexKey))
+            {
+                throw new Exception("Package key invalid");
+            }
+
+            await DataBoundApi.AddPackage(pkg);
+        }, "Package installed", "Package installation failed");
+
+        StateHasChanged();
+    }
+
+    protected Task RemovePackage(ContainerModel c)
+    {
+        return TryExecute(() => DataBoundApi.RemovePackage(c.ContainerId), "Package removal completed", "Package removal failed");
+    }
+
+    private async Task TryExecute(Func<Task> task, string success, string failure)
+    {
+        await Task.Yield();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await task();
+                await InvokeAsync(() => Snackbar.Add(success, Severity.Success));
+            }
+            catch (Exception ex)
+            {
+                await InvokeAsync(() => Snackbar.Add(failure + ": " + ex.Message, Severity.Error));
+                throw;
+            }
+            await InvokeAsync(async () => await Refresh(true));
+        });
+    }
+}

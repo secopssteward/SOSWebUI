@@ -1,0 +1,66 @@
+﻿@using SecOpsSteward.UI.Pages.Workflows.Composer.Nodes
+@if (SelectedNode != null)
+{
+    @if (!_componentDrawerOpen)
+    {
+        <MudButton DisableElevation="false" Variant="Variant.Filled" OnClick="@(e => _componentDrawerOpen = true)"
+                   Style="border: 1px solid black; left: -3px; min-width: 1em; padding: 0; position: absolute; top: calc(var(--mud-appbar-min-height) - 16px); width: auto; z-index: 100">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Medium"/>
+        </MudButton>
+    }
+    <MudDrawerContainer>
+        <MudDrawer Anchor="Anchor.Left" Width="18em" Open="@_componentDrawerOpen" Elevation="3" Style="height: auto !important;">
+
+            <MudButton Size="Size.Small" Class="py-1 w-100" Style="background-color: #fafafa;"
+                       StartIcon="@(_propertiesOpen ? Icons.Material.Filled.ArrowDropUp : Icons.Material.Filled.ArrowDropDown)"
+                       OnClick="@(e => _propertiesOpen = !_propertiesOpen)">
+                Properties
+            </MudButton>
+
+            @if (_propertiesOpen)
+            {
+                <MudGrid Spacing="0">
+                    <MudItem xs="12">
+                        <ParameterCollectionEditor ReadOnly="true" @bind-ParameterCollection="@SelectedNode.Parameters"/>
+                    </MudItem>
+                </MudGrid>
+            }
+
+            <MudButton Size="Size.Small" Class="py-1 w-100" Style="background-color: #fafafa;"
+                       StartIcon="@(_receiptsOpen ? Icons.Material.Filled.ArrowDropUp : Icons.Material.Filled.ArrowDropDown)"
+                       OnClick="@(e => _receiptsOpen = !_receiptsOpen)">
+                Receipt
+            </MudButton>
+            @if (_receiptsOpen && SelectedNode.Receipt != null)
+            {
+                <MudGrid Spacing="0">
+                    <MudItem xs="12">
+                        <SecOpsSteward.UI.Pages.Workflows.Composer.Messages.StepReceiptComponent StepReceipt="@SelectedNode.Receipt"/>
+                    </MudItem>
+                </MudGrid>
+            }
+        </MudDrawer>
+
+    </MudDrawerContainer>
+    @if (_componentDrawerOpen)
+    {
+        <MudButton DisableElevation="false" Variant="Variant.Filled" OnClick="@(e => _componentDrawerOpen = false)"
+                   Style="border: 1px solid black; left: calc(18em + -3px); min-width: 1em; padding: 0; position: absolute; top: calc(var(--mud-appbar-min-height) - 16px); width: auto; z-index: 100">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowLeft" Size="Size.Medium"/>
+        </MudButton>
+    }
+}
+
+@code
+{
+    [Parameter]
+    public EventCallback ClearSelectionClicked { get; set; }
+
+    [Parameter]
+    public WorkflowComposerNode SelectedNode { get; set; }
+
+    private bool _componentDrawerOpen;
+
+    private bool _receiptsOpen = true;
+    private bool _propertiesOpen = false;
+}

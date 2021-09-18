@@ -1,0 +1,40 @@
+﻿<MudAutocomplete @ref="autocomplete" T="AgentModel" Placeholder="Search Agent" Value="@AgentModel" SearchFunc="Search" Variant="Variant.Outlined" ValueChanged="OnSearchResult" AdornmentIcon="@Icons.Material.Outlined.DirectionsRun"
+                 ToStringFunc="@(e => e == null ? null : $"{e.AgentId.ShortId()} ({e.Tag})")">
+    <ItemTemplate Context="result">
+        <MudText>@result.AgentId.ShortId()</MudText>
+        <MudText Typo="Typo.body2">@result.Tag</MudText>
+    </ItemTemplate>
+</MudAutocomplete>
+
+@code
+{
+    [Parameter]
+    public AgentModel AgentModel { get; set; }
+
+    [Parameter]
+    public EventCallback<AgentModel> AgentModelChanged { get; set; }
+
+    protected MudAutocomplete<AgentModel> autocomplete;
+
+    private async Task<IEnumerable<AgentModel>> Search(string text)
+    {
+        await Task.Yield();
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return new AgentModel[0];
+        }
+        var results = DbContext.Agents
+            .ToList()
+            .Where(type => type.Tag.ToLower().Contains(text.ToLower()) || type.AgentId.ToString().ToLower().Contains(text.ToLower()))
+            .ToList();
+        return results;
+    }
+
+    private async Task OnSearchResult(AgentModel entry)
+    {
+        AgentModel = entry;
+        await AgentModelChanged.InvokeAsync(AgentModel);
+        await Task.Delay(1000);
+        await autocomplete.Clear();
+    }
+}

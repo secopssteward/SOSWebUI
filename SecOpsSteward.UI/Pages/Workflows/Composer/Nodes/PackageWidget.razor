@@ -1,0 +1,144 @@
+﻿@using SecOpsSteward.Shared.Messages
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Links
+@using SecOpsSteward.Plugins
+<MudPaper Class="@("default-node " + Classes)" Style="@Styles">
+    <MudGrid Spacing="0">
+        <MudItem xs="12">
+            <MudText Typo="Typo.h6" Align="Align.Center" Style="line-height: 1.2em;">
+                @Node.Package.Name
+            </MudText>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText Typo="Typo.subtitle2" Align="Align.Center">@Node.NodeName</MudText>
+        </MudItem>
+        <MudItem xs="12">
+            <MudGrid Spacing="0">
+                <MudItem xs="7" Class="border-right border-top border-dark">
+                    @if (Agents.Count > 1)
+                    {
+                        <MudSelect @bind-Value="@Node.AgentId" Dense="true">
+                            @foreach (var agent in Agents)
+                            {
+                                <MudSelectItem Value="@agent.AgentId">
+                                    @if (!string.IsNullOrEmpty(agent.Tag))
+                                    {
+                                        @agent.Tag
+                                    }
+                                    else
+                                    {
+                                        @agent.AgentId.ShortId()
+                                    }
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else if (Agents.Count == 0)
+                    {
+                        <MudText Typo="Typo.subtitle1" Class="mt-4" Style="bottom: 0; left: 0; position: absolute;">
+                            Web User
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.subtitle1" Class="mt-4" Style="bottom: 0; left: 0; position: absolute;">
+                            @if (!string.IsNullOrEmpty(Agents.First().Tag))
+                            {
+                                @Agents.First().Tag
+                            }
+                            else
+                            {
+                                @Agents.First().AgentId.ShortId()
+                            }
+                        </MudText>
+                    }
+                </MudItem>
+                <MudItem xs="5" Class="border-top border-dark pt-4" Style="position: relative;">
+                    <div style="bottom: 0; position: absolute; right: 0;">
+                        <MudIcon Icon="@Icons.Material.Outlined.RunCircle" Class="mx-1"
+                                 Color="@(!StepWasExecuted ? Color.Dark : StepExecutionSucceeded ? Color.Success : Color.Error)"/>
+                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Class="mx-1"
+                                 Color="@(!StepExecutionSucceeded ? Color.Dark : PluginSucceeded ? Color.Success : Color.Error)"/>
+                    </div>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+        @foreach (var port in Node.Ports.Where(p => p is InputPort).Cast<InputPort>())
+        {
+            <LabeledNodePort Port="port"
+                             Icon="@Icons.Material.Filled.FileDownload"
+                             IconColor="@Color.Primary"
+                             Heading="Input"/>
+        }
+
+        @foreach (var port in Node.Ports.Where(p => p is OutputPort).Cast<OutputPort>())
+        {
+            var icon = Icons.Material.Filled.SettingsInputHdmi;
+            var iconColor = Color.Primary;
+            if (port.OutputCode == CommonResultCodes.Success)
+            {
+                icon = Icons.Material.Filled.CheckCircle;
+                iconColor = Color.Success;
+            }
+            else if (port.OutputCode == CommonResultCodes.Failure)
+            {
+                icon = Icons.Material.Filled.Dangerous;
+                iconColor = Color.Error;
+            }
+            <LabeledNodePort Port="port"
+                             Icon="@icon"
+                             IconColor="@iconColor"
+                             Heading="@port.OutputCode"/>
+        }
+    </MudGrid>
+</MudPaper>
+
+@code {
+
+    [Parameter]
+    public WorkflowComposerNode Node { get; set; }
+
+    protected List<AgentModel> Agents { get; set; } = new();
+
+    public bool IsSkipped => Node.Success == NodeStates.Skipped;
+    public bool IsSelected => Node.IsSelected;
+    public bool RequiredConfigurationComplete => Node.Parameters.RequiredValuesPopulated;
+
+    public bool StepExecutionSucceeded => Node.Receipt?.StepExecutionResult == ResultCodes.RanPluginOk;
+    public bool PluginSucceeded => Node.Receipt.PluginResult?.ResultCode == CommonResultCodes.Success;
+
+    public bool StepWasExecuted => Node.Receipt != null;
+
+    public string Styles => IsSkipped ? "opacity:0.5; " : "";
+    public string Classes => (IsSelected ? "selected-node " : "") + (RequiredConfigurationComplete ? "" : "configurationIncomplete");
+
+    protected override void OnInitialized()
+    {
+        if (!DbContext.Agents.Any())
+            Node.AgentId = Guid.Empty;
+        else
+            Node.AgentId = DbContext.Agents.First().AgentId;
+        Agents = DbContext.Agents.ToList();
+    }
+
+    public Color Background
+    {
+        get
+        {
+            switch (Node.Success)
+            {
+                case NodeStates.Skipped:
+                case NodeStates.None:
+                    return Color.Inherit;
+                case NodeStates.Failed:
+                    return Color.Error;
+                case NodeStates.Success:
+                    return Color.Success;
+            }
+            return Color.Transparent;
+        }
+    }
+
+    protected bool SettingsVisible { get; set; }
+    protected bool InfoVisible { get; set; }
+}

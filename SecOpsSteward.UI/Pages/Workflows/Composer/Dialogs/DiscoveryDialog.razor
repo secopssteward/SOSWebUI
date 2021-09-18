@@ -1,0 +1,98 @@
+﻿@using SecOpsSteward.Shared.DiscoveryWorkflow
+@using Microsoft.Azure.Management.ResourceManager.Fluent
+@using SecOpsSteward.Plugins.Discovery
+<MudDialog Class="pb-0 mb-0" ClassContent="pb-0 px-0">
+    @*<TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-3 mb-n1"/>
+            Discover New Elements
+        </MudText>
+    </TitleContent>*@
+    <DialogContent>
+        <MudTabs Elevation="2" Rounded="true" Centered="true" Position="Position.Bottom">
+
+            <MudTabPanel Icon="@Icons.Material.Filled.List" Text="Services">
+                <SecOpsSteward.UI.Widgets.ServiceCollectionResourceSelectorWidget
+                    Services="@DbContext.ManagedServices.ToList()"
+                    @bind-SelectedResourceGroups="@ResourceGroups"
+                    @bind-SelectedSubscription="@Subscription"
+                    SelectedResources="@SelectedServices"
+                    SelectedResourcesChanged="@SelectedServicesChanged"/>
+            </MudTabPanel>
+
+            <MudTabPanel Icon="@Icons.Material.Filled.InsertLink" Text="Links">
+                <MudList>
+                    @foreach (var item in ServiceLinks)
+                    {
+                        var icon = SelectedServiceLinks.Contains(item) ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
+                        var label = string.Join(" -> ", item.Select(i => i.DescriptiveName));
+
+                        <MudListItem Icon="@icon" Text="@label" OnClick="@(() => { if (SelectedServiceLinks.Contains(item)) { SelectedServiceLinks.Remove(item); } else { SelectedServiceLinks.Add(item); } StateHasChanged(); })"></MudListItem>
+                    }
+                </MudList>
+            </MudTabPanel>
+
+            <MudTabPanel Icon="@Icons.Material.Filled.Highlight" Text="Templates">
+                @{
+                    var allTemplateSuggestions = SelectedServiceLinks.SelectMany(ssl => DiscoveryService.GetTemplateSuggestions(ssl)).ToList();
+                    var suggestion = allTemplateSuggestions[TemplatePage];
+                }
+
+                <div class="d-block mx-3 mt-0 mb-4" Style="border: 1px solid #aaa; font-size: 0.8rem;">
+                    <ol class="templateList">
+                        @foreach (var link in suggestion)
+                        {
+                            <li>
+                                <a href="#" class="px-2 pl-3">@link.WorkflowStepName</a>
+                                <small class="text-right d-block text-muted mb-2 mr-1" style="position: relative; top: -0.3em;">@link.ServiceConfiguration.DescriptiveName</small>
+                            </li>
+                        }
+                    </ol>
+                    <div class="text-center">
+                        <MudButton Size="Size.Small" Class="mx-auto my-1 py-1 px-3" OnClick="@(() => { TemplateAdded.InvokeAsync(suggestion); })" Color="Color.Success">Add</MudButton>
+                    </div>
+                </div>
+
+                <MudPagination Variant="Variant.Outlined" SelectedChanged="@(s => { TemplatePage = s - 1; StateHasChanged(); })" Count="@allTemplateSuggestions.Count"/>
+            </MudTabPanel>
+
+        </MudTabs>
+    </DialogContent>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    protected DiscoverySequencerService DiscoveryService { get; set; }
+
+    [Parameter]
+    public EventCallback<RouteSegmentPossibility> TemplateAdded { get; set; }
+
+    protected ISubscription Subscription { get; set; }
+    protected HashSet<IResourceGroup> ResourceGroups { get; set; } = new();
+
+    protected HashSet<DiscoveredServiceConfiguration> SelectedServices { get; set; }
+    protected List<List<DiscoveredServiceConfiguration>> ServiceLinks { get; set; } = new();
+
+    protected List<List<DiscoveredServiceConfiguration>> SelectedServiceLinks { get; set; } = new();
+
+    protected int TemplatePage { get; set; }
+
+    protected Task SelectedServicesChanged(HashSet<DiscoveredServiceConfiguration> services)
+    {
+        SelectedServices = services;
+        ServiceLinks = DiscoveryService.CreateServiceLinksAndPaths(SelectedServices.ToList());
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+
+}

@@ -1,0 +1,63 @@
+﻿@page "/"
+@layout EmptyLayout
+
+@* This page handles making sure the authorizations are in place, otherwise we litter our call stack with exceptions when the first request requires consent *@
+@* There is probably a more elegant way of handling this but that's for someone else to figure out -- I've spent a couple days on it already with little success. *@
+
+<CenteredPaperComponent>
+    <SvgAnimatedSOS/>
+    <h4 class="mt-4">Hold on a second...</h4>
+</CenteredPaperComponent>
+
+@inject AzureCurrentCredentialFactory Platform
+@inject NavigationManager NavManager
+
+@code
+{
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Yield();
+        _ = Task.Run(async () =>
+        {
+            await Task.WhenAll(Task.Delay(1800), GenerateDataIfDummy(), GetHandle());
+            NavManager.NavigateTo("/dashboard", true);
+        });
+    }
+
+    private async Task GenerateDataIfDummy()
+    {
+        if (!Startup.UseDummyServices) return;
+
+        var attempts = 0;
+        while (attempts++ < 5)
+            try
+            {
+                await Task.Delay(1000);
+                if (!DbContext.Agents.Any())
+                {
+                    await DataBoundApi.AddAgent("Sample A", Guid.NewGuid());
+                    await DataBoundApi.AddAgent("Sample B", Guid.NewGuid());
+                }
+
+                if (!DbContext.Users.Any())
+                {
+                    Startup.FirstRun = true;
+                    await DataBoundApi.AddUser(TokenOwner.Create(null, false), ChimeraUserRole.GlobalAdmin);
+                    await DataBoundApi.AddUser("bob", ChimeraUserRole.MessageDispatcher);
+                    await DataBoundApi.AddUser("jane", ChimeraUserRole.PackageAdmin);
+                }
+                break;
+            }
+            catch
+            {
+            }
+    }
+
+    private Task<AzureCurrentCredential> GetHandle()
+    {
+        var handle = Platform.GetCredential();
+        if (handle != null)
+            return Task.FromResult(handle);
+        return null;
+    }
+}

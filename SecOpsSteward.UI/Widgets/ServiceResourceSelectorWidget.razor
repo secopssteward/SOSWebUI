@@ -1,0 +1,117 @@
+﻿@using Microsoft.Azure.Management.ResourceManager.Fluent
+@using SecOpsSteward.Plugins.Discovery
+@using SecOpsSteward.Shared.DiscoveryWorkflow
+@using SecOpsSteward.Shared.Packaging
+@using Microsoft.Azure.Management.Fluent
+<MudContainer Class="p-3">
+    <MudItem xs="12">
+        <MudSelect T="ISubscription" Label="Subscription" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                   Value="@SelectedSubscription" ValueChanged="@SetAzureSubscription">
+            @foreach (var subscription in Subscriptions)
+            {
+                <MudSelectItem T="ISubscription" Value="@subscription">@subscription.DisplayName</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSelect T="IResourceGroup" Label="Resource Group" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                   Value="@SelectedResourceGroup" ValueChanged="@SetResourceGroup">
+            @foreach (var resourceGroup in ResourceGroups)
+            {
+                <MudSelectItem T="IResourceGroup" Value="@resourceGroup">@resourceGroup.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSelect T="DiscoveredServiceConfiguration" Label="Resource" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                   Value="@SelectedResource" ValueChanged="@SetResource">
+            @foreach (var resource in Resources.OrderBy(r => r.DescriptiveName))
+            {
+                <MudSelectItem T="DiscoveredServiceConfiguration" Value="@resource">@resource.DescriptiveName</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+</MudContainer>
+
+@code
+{
+    // Select 1 resource from 1 ManagedServiceModel
+
+    protected IEnumerable<ISubscription> Subscriptions { get; set; } = new List<ISubscription>();
+    protected IEnumerable<IResourceGroup> ResourceGroups { get; set; } = new List<IResourceGroup>();
+    protected IEnumerable<DiscoveredServiceConfiguration> Resources { get; set; } = new List<DiscoveredServiceConfiguration>();
+
+    [Inject]
+    public AzureCurrentCredentialFactory InjectedAzure { get; set; }
+
+    [Inject]
+    public DiscoverySequencerService DiscoveryService { get; set; }
+
+    [Inject]
+    public PackageActionsService PackageActions { get; set; }
+
+    [Parameter]
+    public ManagedServiceModel Service { get; set; }
+
+    [Parameter]
+    public ISubscription SelectedSubscription { get; set; }
+
+    [Parameter]
+    public EventCallback<ISubscription> SelectedSubscriptionChanged { get; set; }
+
+    [Parameter]
+    public IResourceGroup SelectedResourceGroup { get; set; }
+
+    [Parameter]
+    public EventCallback<IResourceGroup> SelectedResourceGroupChanged { get; set; }
+
+    [Parameter]
+    public DiscoveredServiceConfiguration SelectedResource { get; set; }
+
+    [Parameter]
+    public EventCallback<DiscoveredServiceConfiguration> SelectedResourceChanged { get; set; }
+
+    private IAzure _azure;
+
+    protected override void OnInitialized()
+    {
+        Subscriptions = InjectedAzure.GetCredential().GetAzure().Subscriptions.List();
+    }
+
+    protected async Task SetAzureSubscription(ISubscription subscription)
+    {
+        SelectedSubscription = subscription;
+        await SelectedSubscriptionChanged.InvokeAsync(SelectedSubscription);
+
+        _azure = InjectedAzure.GetCredential(SelectedSubscription.SubscriptionId).GetAzure();
+        ResourceGroups = await _azure.ResourceGroups.ListAsync();
+    }
+
+    protected async Task SetResourceGroup(IResourceGroup resourceGroup)
+    {
+        SelectedResourceGroup = resourceGroup;
+        await SelectedResourceGroupChanged.InvokeAsync(SelectedResourceGroup);
+
+        var thisCfg = new AzureSharedConfiguration
+        {
+            TenantId = InjectedAzure.GetCredential().TenantId,
+            SubscriptionId = SelectedSubscription.SubscriptionId,
+            ResourceGroup = resourceGroup.Name
+        };
+        try
+        {
+            Resources = await PackageActions.Discover(Service.ManagedServiceId, ChimeraSharedHelpers.SerializeToString(thisCfg));
+        }
+        catch
+        {
+        }
+    }
+
+    protected async Task SetResource(DiscoveredServiceConfiguration resource)
+    {
+        SelectedResource = resource;
+        await SelectedResourceChanged.InvokeAsync(SelectedResource);
+    }
+}

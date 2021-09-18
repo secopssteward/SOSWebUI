@@ -1,0 +1,93 @@
+﻿@using Microsoft.Azure.Management.ResourceManager.Fluent
+@using Microsoft.Azure.Management.Fluent
+<MudContainer Class="p-3">
+    <MudItem xs="12">
+        <MudSelect T="ISubscription" Label="Subscription" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                   Value="@SelectedSubscription" ValueChanged="@SetAzureSubscription">
+            @foreach (var subscription in Subscriptions)
+            {
+                <MudSelectItem T="ISubscription" Value="@subscription">@subscription.DisplayName</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSelect T="IResourceGroup" Label="Resource Group" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                   Value="@SelectedResourceGroup" ValueChanged="@SetResourceGroup">
+            @foreach (var resourceGroup in ResourceGroups)
+            {
+                <MudSelectItem T="IResourceGroup" Value="@resourceGroup">@resourceGroup.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSelect T="IGenericResource" Label="Resource" Strict="true" Variant="Variant.Outlined" Class="py-2"
+                   Value="@SelectedResource" ValueChanged="@SetResource">
+            @foreach (var resource in Resources.OrderBy(r => r.ResourceType).ThenBy(r => r.Name))
+            {
+                <MudSelectItem T="IGenericResource" Value="@resource">@resource.Name (@resource.ResourceType)</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+</MudContainer>
+
+@code
+{
+    // Select a *generic* Azure resource independent of managed services
+
+    protected IEnumerable<ISubscription> Subscriptions { get; set; } = new List<ISubscription>();
+    protected IEnumerable<IResourceGroup> ResourceGroups { get; set; } = new List<IResourceGroup>();
+    protected IEnumerable<IGenericResource> Resources { get; set; } = new List<IGenericResource>();
+
+    [Inject]
+    public AzureCurrentCredentialFactory InjectedAzure { get; set; }
+
+    [Parameter]
+    public ISubscription SelectedSubscription { get; set; }
+
+    [Parameter]
+    public EventCallback<ISubscription> SelectedSubscriptionChanged { get; set; }
+
+    [Parameter]
+    public IResourceGroup SelectedResourceGroup { get; set; }
+
+    [Parameter]
+    public EventCallback<IResourceGroup> SelectedResourceGroupChanged { get; set; }
+
+    [Parameter]
+    public IGenericResource SelectedResource { get; set; }
+
+    [Parameter]
+    public EventCallback<IGenericResource> SelectedResourceChanged { get; set; }
+
+    private IAzure _azure;
+
+    protected override void OnInitialized()
+    {
+        Subscriptions = InjectedAzure.GetCredential().GetAzure().Subscriptions.List();
+    }
+
+    protected async Task SetAzureSubscription(ISubscription subscription)
+    {
+        SelectedSubscription = subscription;
+        await SelectedSubscriptionChanged.InvokeAsync(SelectedSubscription);
+
+        _azure = InjectedAzure.GetCredential(SelectedSubscription.SubscriptionId).GetAzure();
+        ResourceGroups = await _azure.ResourceGroups.ListAsync();
+    }
+
+    protected async Task SetResourceGroup(IResourceGroup resourceGroup)
+    {
+        SelectedResourceGroup = resourceGroup;
+        await SelectedResourceGroupChanged.InvokeAsync(SelectedResourceGroup);
+
+        Resources = await _azure.GenericResources.ListByResourceGroupAsync(SelectedResourceGroup.Name);
+    }
+
+    protected async Task SetResource(IGenericResource resource)
+    {
+        SelectedResource = resource;
+        await SelectedResourceChanged.InvokeAsync(SelectedResource);
+    }
+}

@@ -1,0 +1,214 @@
+﻿@using SecOpsSteward.Plugins.Configurable
+@using SecOpsSteward.Plugins.Discovery
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Dialogs
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Nodes
+@if (!DrawerOpen)
+{
+    <MudButton DisableElevation="false" Variant="Variant.Filled" OnClick="@(e => DrawerOpen = true)"
+               Style="border: 1px solid black; left: -3px; min-width: 1em; padding: 0; position: absolute; top: calc(var(--mud-appbar-min-height) - 16px); width: auto; z-index: 100">
+        <MudIcon Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Medium"/>
+    </MudButton>
+}
+<MudDrawerContainer>
+    <MudDrawer Anchor="Anchor.Left" Width="18em" Open="@DrawerOpen" Elevation="3" Style="height: auto !important;">
+        <MudButton Size="Size.Small" Class="py-1 w-100" Style="background-color: #fafafa;"
+                   StartIcon="@(_addComponentsOpen ? Icons.Material.Filled.ArrowDropUp : Icons.Material.Filled.ArrowDropDown)"
+                   OnClick="@(e => _addComponentsOpen = !_addComponentsOpen)">
+            Add Components
+        </MudButton>
+        @if (_addComponentsOpen)
+        {
+            <MudGrid Spacing="0">
+                <MudItem xs="12">
+                    <MudExpansionPanels Dense="true" DisableGutters="true">
+                        @foreach (var item in Services)
+                        {
+                            <MudExpansionPanel Dense="true" Text="@item.Name" DisableGutters="true">
+                                @foreach (var template in item.Templates.Where(t => t.Participants.Where(p => p.PackageId != Guid.Empty).Count() > 1))
+                                {
+                                    <MudButton EndIcon="@Icons.Material.Filled.ChevronRight"
+                                               FullWidth="true"
+                                               Size="Size.Small"
+                                               IconColor="@Color.Tertiary"
+                                               OnClick="@(async e => await AddTemplateClicked.InvokeAsync(template))">
+                                        @template.Name
+                                    </MudButton>
+                                }
+
+                                @if (item.Templates.Any() && item.Plugins.Any())
+                                {
+                                    <MudDivider/>
+                                }
+
+                                @foreach (var plugin in item.Plugins)
+                                {
+                                    <MudButton EndIcon="@Icons.Material.Filled.ChevronRight"
+                                               FullWidth="true"
+                                               Size="Size.Small"
+                                               IconColor="@Color.Primary"
+                                               OnClick="@(async e => await AddPluginClicked.InvokeAsync(plugin))">
+                                        @plugin.Name
+                                    </MudButton>
+                                }
+                            </MudExpansionPanel>
+                        }
+                    </MudExpansionPanels>
+                </MudItem>
+            </MudGrid>
+        }
+
+        @if (SelectedNode != null)
+        {
+            @if (!string.IsNullOrEmpty(SelectedNode.Package.TransitionOutputsString) ||
+                 !string.IsNullOrEmpty(SelectedNode.Package.TransitionInputsString) && SelectedNode.Package.TransitionInputs.Count(i => !i.StartsWith("&&")) > 0)
+            {
+                <MudButton Size="Size.Small" Class="py-1 w-100" Style="background-color: #fafafa;"
+                           StartIcon="@(_outputsOpen ? Icons.Material.Filled.ArrowDropUp : Icons.Material.Filled.ArrowDropDown)"
+                           OnClick="@(e => _outputsOpen = !_outputsOpen)">
+                    Inputs/Outputs
+                </MudButton>
+
+                @if (_outputsOpen)
+                {
+                    @if (!string.IsNullOrEmpty(SelectedNode.Package.TransitionInputsString) && SelectedNode.Package.TransitionInputs.Count(i => !i.StartsWith("&&")) > 0)
+                    {
+                        <MudGrid Spacing="0">
+                            <MudItem xs="12">
+                                @foreach (var input in SelectedNode.Package.TransitionInputs.Where(i => !i.StartsWith("&&")))
+                                {
+                                    <MudGrid Spacing="0">
+                                        <MudItem xs="2" Class="my-auto" Style="text-align: center">
+                                            <MudIcon Icon="@Icons.Material.Filled.Input"/>
+                                        </MudItem>
+                                        <MudItem xs="10" Class="my-auto">
+                                            <code style="overflow-wrap: break-word;">
+                                                @SelectedNode.Parameters.ApplyToStringTemplate(input)
+                                            </code>
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    }
+
+                    @if (!string.IsNullOrEmpty(SelectedNode.Package.TransitionOutputsString))
+                    {
+                        <MudGrid Spacing="0">
+                            <MudItem xs="12">
+                                @foreach (var output in SelectedNode.Package.TransitionOutputs)
+                                {
+                                    <MudGrid Spacing="0">
+                                        <MudItem xs="2" Class="my-auto" Style="text-align: center">
+                                            <MudIcon Icon="@Icons.Material.Filled.Logout"/>
+                                        </MudItem>
+                                        <MudItem xs="10" Class="my-auto">
+                                            <code style="overflow-wrap: break-word;">
+                                                @SelectedNode.Parameters.ApplyToStringTemplate(output)
+                                            </code>
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+                            </MudItem>
+                        </MudGrid>
+                    }
+                }
+            }
+
+
+            <MudButton Size="Size.Small" Class="py-1 w-100" Style="background-color: #fafafa;"
+                       StartIcon="@(_propertiesOpen ? Icons.Material.Filled.ArrowDropUp : Icons.Material.Filled.ArrowDropDown)"
+                       OnClick="@(e => _propertiesOpen = !_propertiesOpen)">
+                Properties
+            </MudButton>
+
+            @if (_propertiesOpen)
+            {
+                <MudGrid Spacing="0" Class="py-1 px-3">
+                    <MudItem Class="mx-auto">
+                        <MudButton IconColor="Color.Primary" Variant="Variant.Outlined" StartIcon="@Icons.Custom.Brands.MicrosoftAzure" Size="Size.Small" Disabled="@Startup.LockDiscovery" OnClick="@RunResourceSearch">Select Resource</MudButton>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField Label="Node Description" HelperText="Text to be displayed on the node to identify it to the user" @bind-Value="@SelectedNode.NodeName"/>
+                    </MudItem>
+                </MudGrid>
+
+                <MudGrid Spacing="0">
+                    <MudItem xs="12">
+                        <ParameterCollectionEditor @bind-ParameterCollection="@SelectedNode.Parameters"/>
+                    </MudItem>
+                </MudGrid>
+            }
+        }
+    </MudDrawer>
+
+</MudDrawerContainer>
+@if (DrawerOpen)
+{
+    <MudButton DisableElevation="false" Variant="Variant.Filled" OnClick="@(e => DrawerOpen = false)"
+               Style="border: 1px solid black; left: calc(18em + -3px); min-width: 1em; padding: 0; position: absolute; top: calc(var(--mud-appbar-min-height) - 16px); width: auto; z-index: 100">
+        <MudIcon Icon="@Icons.Material.Filled.ArrowLeft" Size="Size.Medium"/>
+    </MudButton>
+}
+
+@code
+{
+    [Parameter]
+    public EventCallback<WorkflowTemplateModel> AddTemplateClicked { get; set; }
+
+    [Parameter]
+    public EventCallback<PluginMetadataModel> AddPluginClicked { get; set; }
+
+    [Parameter]
+    public EventCallback ClearSelectionClicked { get; set; }
+
+    [Parameter]
+    public WorkflowComposerNode SelectedNode
+    {
+        get => _selectedNode;
+        set
+        {
+            _selectedNode = value;
+            StateHasChanged();
+        }
+    }
+
+    [Parameter]
+    public bool DrawerOpen { get; set; }
+
+    private WorkflowComposerNode _selectedNode;
+
+    private bool _addComponentsOpen = true;
+    private bool _propertiesOpen = true;
+    private bool _outputsOpen = true;
+
+    private List<ManagedServiceModel> Services { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Services = await DbContext.ManagedServices
+            .Include(ms => ms.Plugins)
+            .Include(ms => ms.Templates)
+            .ThenInclude(t => t.Participants)
+            .ToListAsync();
+    }
+
+    private async Task RunResourceSearch()
+    {
+        var dialogParams = new DialogParameters();
+        dialogParams.Add(nameof(ResourceSelectorDialog.Service), SelectedNode.Package.ManagedService);
+
+        var dialog = DialogService.Show<ResourceSelectorDialog>("Select Resource", dialogParams);
+        var dResult = await dialog.Result;
+        if (dResult.Cancelled)
+        {
+            return;
+        }
+        var config = dResult.Data as DiscoveredServiceConfiguration;
+
+        foreach (var configValue in config.Configuration.AsDictionaryProperties())
+        {
+            if (SelectedNode.Parameters.Parameters.Any(p => p.Name == configValue.Key))
+                SelectedNode.Parameters[configValue.Key] = configValue.Value;
+        }
+    }
+}

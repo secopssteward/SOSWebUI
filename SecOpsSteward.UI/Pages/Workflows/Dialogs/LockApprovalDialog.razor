@@ -1,0 +1,31 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle1" Align="Align.Center">
+            Would you like to lock this workflow? You will no longer be able to edit it.
+            It will be cryptographically signed by @CurrentUser.Email and will be eligible to run recurrently.
+            If you want to modify this workflow, you will need to create a new workflow based from this one.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="@Cancel">No</MudButton>
+        <MudButton Color="Color.Success" OnClick="@Process">Yes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+
+    private void Process()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

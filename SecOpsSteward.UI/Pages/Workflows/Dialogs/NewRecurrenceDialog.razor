@@ -1,0 +1,133 @@
+﻿@using SecOpsSteward.UI.Widgets
+<MudDialog>
+    <DialogContent>
+
+        <WorkflowSelectorWidget @bind-SelectedWorkflow="@SelectedWorkflow"/>
+
+        <MudDivider/>
+
+        <MudText Typo="Typo.h6" Class="mt-2">First executes on...</MudText>
+        <MudGrid Spacing="2" Class="mb-2">
+            <MudItem xs="6">
+                <MudDatePicker @bind-Date="@SelectedDate" Label="First Execution Date" Editable="true"/>
+            </MudItem>
+            <MudItem xs="6">
+                <MudTimePicker @bind-Time="@SelectedTime" Label="First Execution Time" Editable="true"/>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider/>
+
+        <MudText Typo="Typo.h6" Class="mt-2">Recurs every @SelectedDateRangeText @SelectedTimeSpanText</MudText>
+        <MudGrid Spacing="2" Class="mb-2">
+            <MudItem xs="6">
+                <MudDateRangePicker @bind-DateRange="@SelectedDateRange" Label="Recurs every (day-span)" Editable="true"/>
+            </MudItem>
+            <MudItem xs="6">
+                <MudTimePicker Class="mb-2" @bind-Time="@SelectedTimeSpan" Label="Recurs every (time-span)" Editable="true"/>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider/>
+
+        <MudContainer MaxWidth="MaxWidth.False">
+            <MudGrid Spacing="2">
+                <MudItem Class="mt-6">
+                    <MudText Typo="Typo.h6">How many users must approve?</MudText>
+                </MudItem>
+                <MudItem xs="2" Class="my-auto">
+                    <MudNumericField @bind-Value="@RequireApproversCount">0</MudNumericField>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+
+        @if (RequireApproversCount > 0)
+        {
+            <MudGrid Spacing="0">
+                @foreach (var u in RequiredApproversList)
+                {
+                    <MudItem xs="10">
+                        <UserSelectorWidget UserModel="@u" ReadOnly="true"/>
+                    </MudItem>
+                    <MudItem xs="2" Class="my-auto" Style="text-align: center">
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => { RequiredApproversList.Remove(u); StateHasChanged(); })"/>
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <UserSelectorWidget UserModel="@UserInput" UserModelChanged="@(u => { RequiredApproversList.Add(u); RequiredApproversList = RequiredApproversList.Distinct().ToList(); UserInput = null; StateHasChanged(); })"/>
+                </MudItem>
+            </MudGrid>
+        }
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="@Cancel">No</MudButton>
+        <MudButton Color="Color.Success" OnClick="@Process">Yes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    protected UserModel UserInput { get; set; }
+    protected WorkflowModel SelectedWorkflow { get; set; }
+
+    List<UserModel> RequiredApproversList { get; set; } = new();
+
+    protected int RequireApproversCount { get; set; }
+
+    protected DateTime? SelectedDate { get; set; } = DateTime.Today;
+    protected TimeSpan? SelectedTime { get; set; } = TimeSpan.FromHours(DateTime.Now.Hour) + TimeSpan.FromMinutes(DateTime.Now.Minute) + TimeSpan.FromMinutes(15);
+
+    protected TimeSpan? SelectedTimeSpan { get; set; }
+
+    protected string SelectedTimeSpanText
+    {
+        get
+        {
+            if (SelectedTimeSpan == null) return string.Empty;
+            if (SelectedDateRange == null)
+                return SelectedTimeSpan.Value.ToString("h\\:mm");
+            if (SelectedTime.Value.Minutes > 0 && SelectedTime.Value.Hours > 0)
+                return SelectedTimeSpan.Value.ToString("h hours mm minutes");
+            if (SelectedTime.Value.Hours == 0)
+                return SelectedTimeSpan.Value.ToString("h hours");
+            return SelectedTimeSpan.Value.ToString("m minutes");
+        }
+    }
+
+    protected DateRange SelectedDateRange { get; set; }
+
+    protected string SelectedDateRangeText
+    {
+        get
+        {
+            if (SelectedDateRange == null) return string.Empty;
+            return (int) (SelectedDateRange.End - SelectedDateRange.Start).Value.TotalDays + " days";
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Process()
+    {
+        var model = new WorkflowRecurrenceModel();
+        model.Workflow = SelectedWorkflow;
+        model.FirstRun = new DateTimeOffset(SelectedDate.GetValueOrDefault());
+        model.FirstRun.Add(SelectedTime.GetValueOrDefault());
+
+        var minutes = 0;
+        if (SelectedDateRange != null) minutes += (int) (SelectedDateRange.End - SelectedDateRange.Start).Value.TotalMinutes;
+        if (SelectedTimeSpan != null) minutes += (int) SelectedTimeSpan.Value.TotalMinutes;
+        model.TimeBetweenRuns = TimeSpan.FromMinutes(minutes);
+
+        MudDialog.Close(DialogResult.Ok(model));
+    }
+
+}

@@ -1,0 +1,30 @@
+﻿@page "/dashboard"
+@using SecOpsSteward.Shared.Packaging
+
+<PageSections>
+    <HelpDrawer>
+        <WelcomeComponent/>
+    </HelpDrawer>
+</PageSections>
+
+<MudContainer Class="d-flex justify-center align-center">
+    <div class="d-flex flex-column align-content-center" style="margin-top: 10%">
+        <MudPaper Elevation="1" Class="pa-10" style="min-width: 50vw; text-align: center;">
+            <img src="/css/SOS_Logo_Blue.svg" title="SoS Logo"/>
+        </MudPaper>
+    </div>
+</MudContainer>
+
+@inject PublicPackageRepository PackageService
+
+@code
+{
+    protected Dictionary<Type, bool> SystemStatus { get; set; } = new();
+
+    protected async Task Detonate()
+    {
+        await DbContext.Database.EnsureDeletedAsync();
+        await DbContext.Database.EnsureCreatedAsync();
+        Snackbar.Add("Database reset", Severity.Info);
+    }
+}

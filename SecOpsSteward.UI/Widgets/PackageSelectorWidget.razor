@@ -1,0 +1,38 @@
+﻿<MudAutocomplete @ref="autocomplete" T="PluginMetadataModel" Placeholder="Search Packages" Value="@PackageModel" SearchFunc="Search" Variant="Variant.Outlined" ValueChanged="OnSearchResult" AdornmentIcon="@Icons.Material.Outlined.Backpack"
+                 ToStringFunc="@(e => e == null ? null : $"{e.Name}")">
+    <ItemSelectedTemplate Context="result">
+        <MudText>@result.Name</MudText>
+    </ItemSelectedTemplate>
+    <ItemTemplate Context="result">
+        <MudText>@result.Name</MudText>
+    </ItemTemplate>
+</MudAutocomplete>
+
+@code
+{
+    [Parameter]
+    public PluginMetadataModel PackageModel { get; set; }
+
+    [Parameter]
+    public EventCallback<PluginMetadataModel> PackageModelChanged { get; set; }
+
+    protected MudAutocomplete<PluginMetadataModel> autocomplete;
+
+    private async Task<IEnumerable<PluginMetadataModel>> Search(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return new PluginMetadataModel[0];
+        }
+        var results = await DbContext.Plugins.Where(type => type.Name.ToLower().Contains(text.ToLower())).ToListAsync();
+        return results;
+    }
+
+    private async Task OnSearchResult(PluginMetadataModel entry)
+    {
+        PackageModel = entry;
+        await PackageModelChanged.InvokeAsync(PackageModel);
+        await Task.Delay(1000);
+        await autocomplete.Clear();
+    }
+}

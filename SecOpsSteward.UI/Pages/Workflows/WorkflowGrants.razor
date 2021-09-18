@@ -1,0 +1,178 @@
+﻿@page "/workflows/grants/{WorkflowId:guid}"
+@using SecOpsSteward.Data.Workflow
+@using SecOpsSteward.UI.Pages.Workflows.Dialogs
+
+<PageSections>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">Workflow List</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This page allows you to review the Workflows registered with SecOps Steward.
+            Each row has a series of icons which can be used to perform a variety of operations:
+        </MudText>
+
+        <IconHelp Color="@Color.Success" Icon="@Icons.Material.Filled.ThumbUp"
+                  SecondColor="@Color.Error" SecondIcon="@Icons.Material.Filled.ThumbDown"
+                  Header="Grant Created">
+            Specifies if the approval has been performed for the <b>Agent</b>. This does not have to be done by the current user and
+            may overlap with other modules. For example, if two <b>Plugins</b> do two different actions but target the same resource,
+            these together only require one grant.
+        </IconHelp>
+
+        <IconHelp Color="@Color.Primary" Icon="@Icons.Material.Filled.SelectAll"
+                  Header="Grant All">
+            Uses the current authenticated <b>User</b>'s credentials to approve all grants associated with the <b>Workflow</b>. If the <b>User</b> does not
+            have the required access to perform the grant action, it will fail.
+        </IconHelp>
+    </HelpDrawer>
+</PageSections>
+
+@if (Workflow != null)
+{
+    <MudContainer MaxWidth="MaxWidth.Large">
+        <MudGrid>
+            <MudItem md="12">
+                <MudPaper Elevation="2" Class="@("p-0 " + (Workflow.Nodes.Any(n => n.Grant == null) ? "" : "configurationIncomplete"))">
+                    <MudTable T="SavedNode" Elevation="0" Items="@Workflow.Nodes" @bind-SelectedItem="@SelectedNode" Hover="true" Striped="true">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Agent Grants for Workflow '@WorkflowModel.Name'</MudText>
+                            <MudSpacer/>
+                            @{ var tooltipText = "Grant for all Plugins"; }
+                            @if (Workflow.Nodes.Any(n => !n.Parameters.GrantScopeValuesPopulated))
+                            {
+                                tooltipText = "One or more plugins does not have enough information provided to determine needs.";
+                            }
+                            <MudTooltip Text="@tooltipText">
+                                <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.SelectAll" Disabled=@(Workflow.Nodes.Any(n => !n.Parameters.GrantScopeValuesPopulated))
+                                           OnClick="@(async a => { await AddAllGrants(); })" Class="mr-2 my-1">
+                                    Grant All
+                                </MudButton>
+                            </MudTooltip>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>
+                                <MudTableSortLabel SortBy="new Func<SavedNode, object>(x => x.Id)">Id</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>
+                                <MudTableSortLabel SortBy="new Func<SavedNode, object>(x => x.NodeName)">Name</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>
+                                <MudTableSortLabel SortBy="new Func<SavedNode, object>(x => x.Agent.Tag)">Agent</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>
+                                <MudTableSortLabel SortBy="new Func<SavedNode, object>(x => x.Service.Name)">Service</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>Status</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Id">@Guid.Parse(context.Id).ShortId()</MudTd>
+                            <MudTd DataLabel="Name">@context.NodeName</MudTd>
+                            <MudTd DataLabel="Agent">@context.Agent.Tag (@context.Agent.AgentId.ShortId())</MudTd>
+                            <MudTd DataLabel="Service">@context.Package.Name (@context.Package.PluginId.ShortId())</MudTd>
+                            <MudTd DataLabel="Status">
+                                @if (context.Grant != null)
+                                {
+                                    <MudIcon Color="Color.Success" Icon="@Icons.Material.Filled.ThumbUp"/>
+                                }
+                                else
+                                {
+                                    var itemTooltipText = "Grant Access for this Plugin to the Agent identity";
+                                    if (Workflow.Nodes.Any(n => !n.Parameters.GrantScopeValuesPopulated))
+                                    {
+                                        itemTooltipText = "This plugin does not have enough information to determine its grant needs.";
+                                    }
+                                    <MudTooltip Text="@itemTooltipText">
+                                        <MudIconButton Color="Color.Error" Icon="@Icons.Material.Filled.ThumbDown"
+                                                       OnClick="@(() => AddGrant(context))" Variant="@(context.Parameters.GrantScopeValuesPopulated ? Variant.Outlined : Variant.Text)"
+                                                       Disabled="@(!context.Parameters.GrantScopeValuesPopulated)"/>
+                                    </MudTooltip>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new[] {10, 25}"/>
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code
+{
+    [Parameter]
+    public Guid WorkflowId { get; set; }
+
+    protected SavedNode SelectedNode { get; set; }
+
+    protected WorkflowModel WorkflowModel { get; set; }
+    protected SavedWorkflow Workflow { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        WorkflowModel = await DbContext.Workflows.FirstOrDefaultAsync(w => w.WorkflowId == WorkflowId);
+        Workflow = WorkflowModel.SavedData;
+
+        await Refresh();
+    }
+
+    protected async Task Refresh()
+    {
+        Workflow.Nodes.ForEach(n => n.PopulateDatabaseLinks(DbContext));
+
+        if (!Workflow.Nodes.Any(n => n.Grant == null) &&
+            !WorkflowModel.IsAgentSetGranted)
+        {
+            WorkflowModel.IsAgentSetGranted = true;
+            await DbContext.SaveChangesAsync();
+        }
+        if (Workflow.Nodes.Any(n => n.Grant == null) &&
+            WorkflowModel.IsAgentSetGranted)
+        {
+            WorkflowModel.IsAgentSetGranted = false;
+            await DbContext.SaveChangesAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    protected async Task AddGrant(SavedNode node)
+    {
+        var dialogParams = new DialogParameters();
+        dialogParams.Add(nameof(GrantDialog.PluginId), new ChimeraPackageIdentifier(node.PackageId));
+        dialogParams.Add(nameof(GrantDialog.Configuration), node.Parameters);
+        var dlg = DialogService.Show<GrantDialog>("Grant Rights?", dialogParams);
+        var dlgResult = await dlg.Result;
+
+        if (dlgResult.Data != null && (bool) dlgResult.Data)
+        {
+            Snackbar.Add("Granting access for " + node.PackageId.ShortId());
+            await PerformGrant(WorkflowId, node.WorkflowStepId);
+            await Refresh();
+            Snackbar.Add("Access grant for " + node.PackageId.ShortId() + " complete");
+        }
+    }
+
+    protected async Task AddAllGrants()
+    {
+        var dialogParams = new DialogParameters();
+        dialogParams.Add(nameof(BulkGrantDialog.Workflow), Workflow);
+        var dlg = DialogService.Show<BulkGrantDialog>("Grant All Rights?", dialogParams);
+        var dlgResult = await dlg.Result;
+
+        if (dlgResult.Data != null && (bool) dlgResult.Data)
+        {
+            Snackbar.Add("Granting access for workflow " + WorkflowModel.Name);
+            await Task.WhenAll(Workflow.Nodes.Select(async n => await PerformGrant(WorkflowId, n.WorkflowStepId)));
+            await Refresh();
+            Snackbar.Add("Access grant for workflow " + WorkflowModel.Name + " complete");
+        }
+    }
+
+    private async Task PerformGrant(Guid workflowId, Guid workflowStepId)
+    {
+        if (Startup.LockDiscovery)
+            return;
+        await DataBoundApi.GrantAgentRightsToRun(CurrentUser.UserId.Id, workflowId, workflowStepId);
+    }
+}

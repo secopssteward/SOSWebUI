@@ -1,0 +1,53 @@
+﻿@using System.Text.Encodings.Web
+<MudIconButton OnClick="@(() => IsVisible = !IsVisible)" Icon="@Icons.Material.Filled.BugReport" Color="@(IsVisible ? Color.Warning : Color.Inherit)" Title="Create a Bug Report" />
+
+@if (IsVisible)
+{
+    @* Subtract 16px for dense bar *@
+    <MudPaper Class="d-block px-3 py-4" Style="Position: absolute; top: calc(var(--mud-appbar-min-height) - 16px); right: 5em;" Elevation="1" MaxWidth="24em">
+        <MudGrid Spacing="1">
+            <MudItem xs="12">
+                <MudText Align="Align.Center" Typo="Typo.h6">File a Bug Report</MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" Label="Title for Report" Variant="Variant.Outlined" @bind-Text="@Title" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" Label="What Were You Doing?" Variant="Variant.Outlined" @bind-Text="@WhatWereYouDoing" Lines="2"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField T="string" Label="What Went Wrong?" Variant="Variant.Outlined" @bind-Text="@WhatWentWrong" Lines="2"/>
+            </MudItem>
+            <MudItem xs="12" Style="text-align:center;">
+                <MudButton OnClick="@RedirectToIssue" StartIcon="@Icons.Material.Filled.BugReport" Color="Color.Secondary" Variant="Variant.Outlined">File a Bug Report</MudButton>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Align="Align.Center" Typo="Typo.caption">Thanks for helping to make SecOps Steward better!</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    [Inject]
+    public NavigationManager NavManager { get; set; }
+
+    public bool IsVisible { get; set; }
+
+    protected string Title { get; set; }
+    protected string WhatWereYouDoing { get; set; }
+    protected string WhatWentWrong { get; set; }
+
+    protected string ReportBody =>
+        $"What were you doing:  {WhatWereYouDoing}\n\n" +
+        $"What went wrong:  {WhatWentWrong}\n\n" +
+        $"URI:  {NavManager.Uri}";
+
+    protected void RedirectToIssue()
+    {
+        NavManager.NavigateTo("https://github.com/SecOpsSteward/SecOpsSteward/issues/new?" +
+                              "title=Bug+Report+From+Application" + "&" +
+                              "body=" +
+                              UrlEncoder.Create().Encode(ReportBody));
+    }
+}

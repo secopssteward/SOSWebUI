@@ -1,0 +1,27 @@
+﻿@inherits LayoutComponentBase
+@layout AppEmptyLayout
+
+<MudLayout>
+    <MudAppBar Dense="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(e => DrawerToggle())"/>
+        <img src="/css/SOS_Logo_White.svg" class="mx-1" style="height: 2em" title="SecOps Steward"/>
+        <MudSpacer/>
+        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" Link="/signout-oidc"/>
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Docked">
+        <NavMenu/>
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+}

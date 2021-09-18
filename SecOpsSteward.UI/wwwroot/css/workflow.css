@@ -1,0 +1,81 @@
+﻿.port:hover { background-color: #c5c5d5 !important; }
+
+div.configurationIncomplete:after {
+    border-color: transparent #8A3232 transparent transparent;
+    border-style: solid;
+    border-width: 0 30px 30px 0;
+    content: '';
+    height: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 0;
+}
+
+div.selected-node {
+    animation: node-glow 1s infinite alternate;
+    border: 1px solid #33aa33;
+}
+
+@keyframes node-glow {
+    from { box-shadow: 0 0 5px -5px #33aa33; }
+
+    to { box-shadow: 0 0 5px 5px #33aa33; }
+}
+
+div.default-node {
+    height: auto;
+    padding: 0.8em 0.7em 0.5em 0.7em !important;
+    width: 20em !important;
+}
+
+div.arrow-right {
+    background: #6c757d;
+    color: #ccc;
+    line-height: 1.5em;
+    margin: 0px auto;
+    position: relative;
+    text-align: center;
+}
+
+div.arrow-right:after, div.arrow-right:before {
+    content: "";
+    height: 50%;
+    left: 100%;
+    position: absolute;
+    width: 20px;
+}
+
+div.arrow-right:after {
+    background: linear-gradient(to right bottom, #6c757d 50%, transparent 50%);
+    bottom: 0;
+}
+
+div.arrow-right:before {
+    background: linear-gradient(to right top, #6c757d 50%, transparent 50%);
+    top: 0;
+}
+
+#workflowDiagram {
+    background: linear-gradient(90deg, white 21px, transparent 1%) center, linear-gradient(white 21px, transparent 1%) center, #a799cc;
+    background-size: 22px 22px;
+}
+
+.unusedNodePath { opacity: 0.5; }
+
+.activePort {
+    border-color: green !important;
+    border-width: 2px !important;
+}
+
+.skippedPort {
+    background-color: #777 !important;
+    opacity: 0.5;
+}
+
+.workflowPort {
+    height: 26px !important;
+    margin: -13px !important;
+    text-align: center;
+    width: 26px !important;
+}

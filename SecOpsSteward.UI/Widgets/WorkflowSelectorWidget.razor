@@ -1,0 +1,29 @@
+﻿<MudSelect T="WorkflowModel" Label="Workflow" Strict="true" Variant="Variant.Outlined" Class="py-2"
+           Value="@SelectedWorkflow" ValueChanged="@OnWorkflowChanged">
+    @foreach (var workflow in Workflows)
+    {
+        <MudSelectItem T="WorkflowModel" Value="@workflow">@workflow.Name (@workflow.WorkflowId.ShortId())</MudSelectItem>
+    }
+</MudSelect>
+
+@code
+{
+    protected IEnumerable<WorkflowModel> Workflows { get; set; } = new List<WorkflowModel>();
+
+    [Parameter]
+    public WorkflowModel SelectedWorkflow { get; set; }
+
+    [Parameter]
+    public EventCallback<WorkflowModel> SelectedWorkflowChanged { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Workflows = DbContext.Workflows.ToList();
+    }
+
+    protected async Task OnWorkflowChanged(WorkflowModel w)
+    {
+        SelectedWorkflow = w;
+        await SelectedWorkflowChanged.InvokeAsync(SelectedWorkflow);
+    }
+}

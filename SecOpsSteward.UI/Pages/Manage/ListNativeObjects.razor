@@ -1,0 +1,113 @@
+﻿@page "/system/list"
+@using Azure.Security.KeyVault.Secrets
+@using Azure.Storage.Blobs
+@using Azure.Storage.Blobs.Models
+@using Azure.Security.KeyVault.Keys
+@using Microsoft.Azure.Management.ServiceBus.Fluent
+
+<h3>Keys</h3>
+<p>@KeysError</p>
+<MudList>
+    @foreach (var key in Keys)
+    {
+        <MudListItem>@key.Name</MudListItem>
+    }
+</MudList>
+
+<h3>Secrets</h3>
+<p>@SecretsError</p>
+<MudList>
+    @foreach (var secret in Secrets)
+    {
+        <MudListItem>@secret.Name</MudListItem>
+    }
+</MudList>
+
+<h3>Packages</h3>
+<p>@PackagesError</p>
+<MudList>
+    @foreach (var pkg in Packages)
+    {
+        <MudListItem>@pkg.Name</MudListItem>
+    }
+</MudList>
+
+<h3>Queues</h3>
+<p>@QueuesError</p>
+<MudList>
+    @foreach (var queue in Queues)
+    {
+        <MudListItem>@queue.Name</MudListItem>
+    }
+</MudList>
+
+@inject AzureCurrentCredentialFactory Platform
+@inject ChimeraServiceConfigurator _configurator
+
+@code
+{
+    protected List<SecretProperties> Secrets { get; set; } = new();
+    protected List<KeyProperties> Keys { get; set; } = new();
+    protected List<BlobItem> Packages { get; set; } = new();
+    protected List<IQueue> Queues { get; set; } = new();
+
+    protected string KeysError { get; set; }
+    protected string SecretsError { get; set; }
+    protected string PackagesError { get; set; }
+    protected string QueuesError { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var azure = Platform.GetCredential().GetAzure();
+
+        try
+        {
+            Secrets = GetSecretClient().GetPropertiesOfSecrets().AsPages().SelectMany(p => p.Values).ToList();
+        }
+        catch (Exception e)
+        {
+            SecretsError = e.ToString();
+        }
+        try
+        {
+            Keys = GetKeyClient().GetPropertiesOfKeys().AsPages().SelectMany(p => p.Values).ToList();
+        }
+        catch (Exception e)
+        {
+            KeysError = e.ToString();
+        }
+        try
+        {
+            Packages = GetClient().GetBlobs().AsPages().SelectMany(p => p.Values).ToList();
+        }
+        catch (Exception e)
+        {
+            PackagesError = e.ToString();
+        }
+        try
+        {
+            var sb = await azure.ServiceBusNamespaces.GetByResourceGroupAsync(_configurator["ResourceGroup"], _configurator["ServiceBusNamespace"]);
+            Queues = (await sb.Queues.ListAsync()).ToList();
+        }
+        catch (Exception e)
+        {
+            QueuesError = e.ToString();
+        }
+    }
+
+    protected KeyClient GetKeyClient()
+    {
+        return new(new Uri("https://" + _configurator["VaultName"] + ".vault.azure.net"), Platform.GetCredential().Credential);
+    }
+
+    protected SecretClient GetSecretClient()
+    {
+        return new(new Uri("https://" + _configurator["VaultName"] + ".vault.azure.net"), Platform.GetCredential().Credential);
+    }
+
+    private BlobContainerClient GetClient()
+    {
+        return new BlobServiceClient(new Uri("https://" + _configurator["PackageRepoAccount"] + ".blob.core.windows.net"), Platform.GetCredentialPreferringAppIdentity().Credential)
+            .GetBlobContainerClient(_configurator["PackageRepoContainer"]);
+    }
+}

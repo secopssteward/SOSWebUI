@@ -1,0 +1,205 @@
+﻿@layout DynamicMainLayout
+@page "/workflows/composer/{WorkflowId:guid}"
+@page "/workflows/composer"
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Nodes
+@using SecOpsSteward.Plugins.Configurable
+@using SecOpsSteward.Shared.DiscoveryWorkflow
+@using SecOpsSteward.Shared.Messages
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Dialogs
+@using SecOpsSteward.UI.Pages.Workflows.Composer.Panels
+
+
+@{ var isEditing = false; }
+<PageSections @ref="_sections">
+    <TitleBar>
+        @if (!DbContext.Plugins.Any())
+        {
+            return;
+        }
+        @if (Workflow == null)
+        {
+            <span>
+                No Workflow Loaded
+            </span>
+        }
+        else
+        {
+            @if (!isEditing)
+            {
+                <span>
+                    @Workflow.Name <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => { isEditing = true; _sections.LayoutStateHasChanged(); })"/>
+                </span>
+            }
+            else
+            {
+                <span>
+                    <MudTextField T="string" Style="color: #fff; margin-bottom: 0.5em; margin-top: 0; width: 15em;" @bind-Text="@Workflow.Name" Placeholder="Workflow Name" AutoFocus="true" OnBlur="@(async b => {isEditing = false; await SaveChanges(); _sections.LayoutStateHasChanged(); })"/>
+                </span>
+            }
+        }
+    </TitleBar>
+    <ButtonBar>
+        @if (DbContext.Plugins.Any())
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Save" Color="Color.Inherit" OnClick="@(() => SaveChanges())"/>
+            var dialogParams = new DialogParameters();
+            dialogParams.Add(nameof(DiscoveryDialog.TemplateAdded), EventCallback.Factory.Create<RouteSegmentPossibility>(this, cb => { ComposerComponent.AddWorkflowDefinitionSteps(cb); }));
+            <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" Disabled="@Startup.LockDiscovery" OnClick="@(() => DialogService.Show<DiscoveryDialog>("Discovery", dialogParams))"/>
+        }
+    </ButtonBar>
+    <SecondaryDrawer>
+        @if (DbContext.Plugins.Any())
+        {
+            <AddComponentsDrawer
+                DrawerOpen="true"
+                AddPluginClicked="@AddPluginClicked"
+                AddTemplateClicked="@AddTemplateClicked"
+                ClearSelectionClicked="@ClearSelectionClicked"
+                SelectedNode="@SelectedNode"/>
+        }
+    </SecondaryDrawer>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">Workflow Composer</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This provides a drag-and-drop workspace for creating <b>Workflows</b>. It is the heart of SecOps Steward
+            and is used to configure individual <b>Plugins</b> and the sequence in which they execute.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Use the options at the left to insert components for the <b>Managed Service</b> they are listed under.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Clicking on the <b>Plugin</b> node in the workspace will display its properties on the left under the <b>Add Component</b>
+            control. You can configure and name that node here, or use the <b>Resource Selector</b> to configure the resource from
+            an existing Azure resource in your subscription.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            The <b>Workflow</b> can be named based on what you're trying to accomplish with the <MudIcon Icon="@Icons.Material.Filled.Edit" Class="icon-baseline-adjustment"/> icon
+            to the right of the workflow name, listed at the top left.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            You can also try to discover related resources by using the <MudIcon Icon="@Icons.Material.Filled.Search" Class="icon-baseline-adjustment"/> icon
+            at the upper right.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            When you're satisfied with your <b>Workflow</b>, or just want to come back to it later, save it by clicking the <MudIcon Icon="@Icons.Material.Filled.Save" Class="icon-baseline-adjustment"/> icon
+            at the upper right.
+        </MudText>
+    </HelpDrawer>
+</PageSections>
+
+@if (!DbContext.Plugins.Any())
+{
+    <ErrorText Title="No Plugins Installed">
+        Use of the Composer tool requires at least one Package to be installed. Go to
+        <MudLink Href="/manage/packages">Manage Packages</MudLink> and install one or more plugins from the public repository!
+    </ErrorText>
+}
+else
+{
+    <div id="workflowDiagram" Style="height: calc(100vh - 50px);">
+        <WorkflowComposerComponent @ref="ComposerComponent" NodeSelected="@(n => { SelectedNode = n; _sections.LayoutStateHasChanged(); })"/>
+    </div>
+}
+
+@code {
+    private PageSections _sections;
+    protected WorkflowModel Workflow { get; set; }
+
+    private WorkflowComposerComponent ComposerComponent;
+
+    protected WorkflowComposerNode SelectedNode { get; set; }
+
+    protected ConfigurableObjectParameterCollection SelectedNodeParameters { get; set; } = new();
+    protected ExecutionStepReceipt SelectedNodeStepReceipt { get; set; } = new();
+
+    [Parameter]
+    public Guid? WorkflowId { get; set; }
+
+    [Inject]
+    protected NavigationManager NavManager { get; set; }
+
+    [Inject]
+    protected IDbContextFactory<SecOpsStewardDbContext> DbContextFactory { get; set; }
+
+    private bool _loading;
+    private bool _newWf;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (WorkflowId == null) return;
+
+        if (_loading) return;
+
+        if (WorkflowId != null && Workflow != null && Workflow.WorkflowId == WorkflowId.GetValueOrDefault()) return;
+        _loading = true;
+
+        using (var cxt = DbContextFactory.CreateDbContext())
+        {
+            if (!DbContext.Plugins.Any()) return;
+
+            Workflow = DbContext.Workflows.FirstOrDefault(w => w.WorkflowId == WorkflowId);
+
+            DbContext.ChangeTracker.Clear();
+
+            if (Workflow == null)
+            {
+                Workflow = new WorkflowModel {WorkflowId = WorkflowId.GetValueOrDefault(Guid.NewGuid())};
+                if (!DbContext.Workflows.Local.Any(wf => wf.WorkflowId == Workflow.WorkflowId))
+                    DbContext.Workflows.Add(Workflow);
+                _newWf = true;
+            }
+            else _newWf = false;
+
+            await Task.Run(async () =>
+            {
+                await Task.Delay(500);
+                await InvokeAsync(() => ComposerComponent.Load(Workflow));
+            });
+        }
+
+        _loading = false;
+    }
+
+
+    protected void AddPluginClicked(PluginMetadataModel p)
+    {
+        ComposerComponent.AddPackageNode(p);
+    }
+
+    protected async Task AddTemplateClicked(WorkflowTemplateModel t)
+    {
+        var dialogParams = new DialogParameters();
+        dialogParams.Add(nameof(TemplateConfigurationDialog.WorkflowTemplate), t);
+
+        var dialog = DialogService.Show<TemplateConfigurationDialog>("Configure Template Sequence", dialogParams);
+        var dResult = await dialog.Result;
+        if (dResult.Cancelled)
+        {
+            return;
+        }
+        var config = dResult.Data as ConfigurableObjectParameterCollection;
+
+        ComposerComponent.AddWorkflowTemplate(t, config.AsDictionary());
+    }
+
+    protected void ClearSelectionClicked()
+    {
+        ComposerComponent.ClearSelection();
+        SelectedNode = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveChanges()
+    {
+        var updatedWorkflow = ComposerComponent.Save();
+
+        if (!_newWf)
+            Workflow = await DbContext.Workflows.FirstAsync(w => w.WorkflowId == WorkflowId);
+
+        Workflow.WorkflowJson = updatedWorkflow;
+        await DbContext.SaveChangesAsync();
+
+        Snackbar.Add("Workflow saved successfully", Severity.Success);
+    }
+
+}

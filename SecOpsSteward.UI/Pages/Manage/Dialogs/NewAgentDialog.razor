@@ -1,0 +1,96 @@
+﻿@using Microsoft.Azure.Management.AppService.Fluent
+@using SecOpsSteward.Integrations.Azure
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle1" Align="Align.Center">
+            If you don't already have a Functions App deployed, click here to deploy a new app with the Agent template to Azure:<br/>
+            <a class="mx-auto my-1" href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanthturner%2FSecOpsSteward%2Fmaster%2Fdeploy%2FSecOpsSteward.json">
+                <img src="https://aka.ms/deploytoazurebutton" alt="Deploy to Azure Button"/>
+            </a>
+        </MudText>
+
+        <AzureFunctionSelectorWidget @bind-SelectedFunction="@SelectedFunction"/>
+        <MudTextField @bind-Value="@AgentTag" Placeholder="Display Name for Agent" Label="Agent Tag"/>
+
+        @if (SelectedFunction != null)
+        {
+            <MudGrid>
+                <MudItem sm="4">Managed Identity ID</MudItem>
+                <MudItem sm="8">@SelectedFunction.SystemAssignedManagedServiceIdentityPrincipalId</MudItem>
+            </MudGrid>
+        }
+        <MudText Typo="Typo.subtitle2" Align="Align.Center" Class="mt-3 mb-2">
+            When this Agent is created, the selected Azure Functions application will receive several App Settings, including the current system configuration and its new Agent Identity.
+            The Function App must already either be running the SOS Agent or pointed to the SOS Agent's repository.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Success" OnClick="@AddAgent">Add Agent</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    ChimeraServiceConfigurator Configurator { get; set; }
+
+    [Inject]
+    AzureCurrentCredentialFactory PlatformFactory { get; set; }
+
+    protected IFunctionApp SelectedFunction { get; set; }
+    protected string AgentTag { get; set; }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task AddAgent()
+    {
+        var newAgentId = SelectedFunction.SystemAssignedManagedServiceIdentityPrincipalId;
+
+        try
+        {
+            Snackbar.Add("Starting Agent configuration process...", Severity.Info);
+
+            var serviceBusConnectionString = "Endpoint=sb://" + Configurator["ServiceBusNamespace"] + ".servicebus.windows.net;Authentication=Managed Identity";
+
+            await SelectedFunction.Update()
+                .WithAppSetting("AgentId", newAgentId)
+                .WithAppSetting("AgentName", AgentTag)
+                .WithAppSetting("TenantId", Configurator["TenantId"])
+                .WithAppSetting("Chimera__SubscriptionId", Configurator["SubscriptionId"])
+                .WithAppSetting("Chimera__VaultName", Configurator["VaultName"])
+                .WithAppSetting("Chimera__ServiceBusNamespace", Configurator["ServiceBusNamespace"])
+                .WithAppSetting("Chimera__PackageRepoAccount", Configurator["PackageRepoAccount"])
+                .WithAppSetting("Chimera__PackageRepoContainer", Configurator["PackageRepoContainer"])
+                .WithAppSetting("IgnoreUserPermissionRestrictions", $"{Startup.IgnoreUserPermissionRestrictions}")
+                .WithAppSetting("SOSBus", serviceBusConnectionString)
+                .ApplyAsync();
+
+            var isUpdating = false;
+            if (!DbContext.Agents.Any(a => a.AgentId == Guid.Parse(newAgentId)))
+            {
+                await DataBoundApi.AddAgent(AgentTag, Guid.Parse(newAgentId));
+                isUpdating = true;
+            }
+
+            await SelectedFunction.RestartAsync();
+
+            if (isUpdating)
+                Snackbar.Add("Agent " + newAgentId + " configuration update successful. App is restarting.", Severity.Success);
+            else
+                Snackbar.Add("Agent " + newAgentId + " creation successful. App is restarting.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Agent creation failed: " + ex.Message, Severity.Error);
+        }
+        MudDialog.Close(DialogResult.Ok(Guid.Parse(newAgentId)));
+    }
+
+}

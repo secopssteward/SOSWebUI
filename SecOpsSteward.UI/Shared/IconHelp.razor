@@ -1,0 +1,35 @@
+﻿<MudText Typo="Typo.caption" Class="mb-3">
+    @if (!string.IsNullOrEmpty(SecondIcon))
+    {
+        <MudIcon Size="Size.Small" Class="icon-baseline-adjustment" Icon="@Icon" Color="@Color"/>
+        <span> / </span>
+        <MudIcon Size="Size.Small" Class="icon-baseline-adjustment" Icon="@SecondIcon" Color="@SecondColor"/>
+    }
+    else
+    {
+        <MudIcon Size="Size.Small" Class="icon-baseline-adjustment mx-4" Icon="@Icon" Color="@Color"/>
+    }
+    <MudText Typo="Typo.subtitle1" Class="d-inline">@Header</MudText><br/>
+    @ChildContent
+</MudText>
+
+@code
+{
+    [Parameter]
+    public string Header { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public Color Color { get; set; }
+
+    [Parameter]
+    public Color SecondColor { get; set; }
+
+    [Parameter]
+    public string Icon { get; set; }
+
+    [Parameter]
+    public string SecondIcon { get; set; }
+}

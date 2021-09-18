@@ -1,0 +1,35 @@
+﻿@using SecOpsSteward.Shared.Messages
+<MudContainer>
+    <MudItem xs="12">@WorkflowReceipt.WorkflowId.ShortId()</MudItem>
+
+    @foreach (var variable in WorkflowReceipt.Receipts.Last().PluginResult.SharedOutputs.Outputs)
+    {
+        <MudItem xs="4">
+            @variable.Key
+        </MudItem>
+        <MudItem xs="12">
+            <code>@variable.Value</code>
+        </MudItem>
+    }
+
+    <MudExpansionPanels>
+        @foreach (var item in WorkflowReceipt.Receipts)
+        {
+            <MudExpansionPanel Text="@item.StepId.ShortId()">
+                <StepReceiptComponent StepReceipt="@item"/>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+
+    @WorkflowReceipt.Signature
+
+</MudContainer>
+
+
+@code {
+
+    [Parameter]
+    public WorkflowReceipt WorkflowReceipt { get; set; }
+
+    protected Dictionary<Guid, bool> Visibilities { get; set; } = new();
+}

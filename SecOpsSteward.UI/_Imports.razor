@@ -1,0 +1,31 @@
+﻿@using System.Net.Http
+@using SecOpsSteward.Plugins.Azure
+@using SecOpsSteward.Shared
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
+@using SecOpsSteward.Shared.Roles
+@using SecOpsSteward.UI
+@using SecOpsSteward.UI.Shared
+@using SecOpsSteward.UI.Widgets
+
+@* Data *@
+@using SecOpsSteward.Data
+@using SecOpsSteward.Data.Models
+@using Microsoft.EntityFrameworkCore
+
+@* UI *@
+@using MudBlazor
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Services *@
+@inject DataBoundApi DataBoundApi
+@inject SecOpsStewardDbContext DbContext
+@inject TokenOwner CurrentUser
+
+@inject AzureCurrentCredentialFactory Platform

@@ -1,0 +1,159 @@
+﻿@page "/manage/users"
+@using SecOpsSteward.UI.Pages.Manage.Dialogs
+
+<PageSections>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">User List</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This page displays all of the <b>Users</b> enrolled in the system. It can also enroll new <b>Users</b>.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            <b>Users</b> in this table can access the SecOps Steward Web UI and control plane.
+            There is no additional role-based access control at this time.
+        </MudText>
+    </HelpDrawer>
+</PageSections>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudGrid>
+        <MudItem md="12" lg="@(SelectedModel != null ? 6 : 12)">
+            <MudPaper Elevation="2" Class="p-0" Style="text-align: right;">
+                <MudTable @ref="_table" Elevation="0" Items="@UserModels" @bind-SelectedItem="@SelectedModel" Hover="true" Striped="true">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Users</MudText>
+                        <MudSpacer/>
+                        <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.VerifiedUser" Disabled="@Startup.LockDiscovery" OnClick="@EnrollUser" Class="mr-2 my-1">Enroll User</MudButton>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<UserModel, object>(x => x.UserId)">User ID</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<UserModel, object>(x => x.Username)">Username</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            User Roles
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<UserModel, object>(x => x.DisplayName)">Display Name</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="User ID">@context.UserId.ShortId()</MudTd>
+                        <MudTd DataLabel="Username">@context.Username</MudTd>
+                        <MudTd HideSmall="true" DataLabel="Display Name">@context.DisplayName</MudTd>
+                        <MudTd HideSmall="true" DataLabel="User Roles">
+                            <MudTooltip Text="Global Admin">
+                                <MudIcon Icon="@(context.Role.HasFlag(ChimeraUserRole.GlobalAdmin) ?
+                                       Icons.Material.Filled.AdminPanelSettings :
+                                       Icons.Material.Outlined.AdminPanelSettings)"
+                                        Color="@(context.Role.HasFlag(ChimeraUserRole.GlobalAdmin) ?
+                                        Color.Success : Color.Default)" />
+                            </MudTooltip>
+                            <MudTooltip Text="User Admin">
+                                <MudIcon Icon="@(context.Role.HasFlag(ChimeraUserRole.UserAdmin) ?
+                                       Icons.Material.Filled.SupervisorAccount :
+                                       Icons.Material.Outlined.SupervisorAccount)"
+                                        Color="@(context.Role.HasFlag(ChimeraUserRole.UserAdmin) ?
+                                        Color.Success : Color.Default)" />
+                            </MudTooltip>
+                            <MudTooltip Text="Package Admin">
+                                <MudIcon Icon="@(context.Role.HasFlag(ChimeraUserRole.PackageAdmin) ?
+                                       Icons.Material.Filled.CloudDownload :
+                                       Icons.Material.Outlined.CloudDownload)"
+                                        Color="@(context.Role.HasFlag(ChimeraUserRole.PackageAdmin) ?
+                                        Color.Success : Color.Default)" />
+                            </MudTooltip>
+                            <MudTooltip Text="Agent Admin">
+                                <MudIcon Icon="@(context.Role.HasFlag(ChimeraUserRole.AgentAdmin) ?
+                                       Icons.Material.Filled.SupervisorAccount :
+                                       Icons.Material.Outlined.SupervisorAccount)"
+                                        Color="@(context.Role.HasFlag(ChimeraUserRole.AgentAdmin) ?
+                                        Color.Success : Color.Default)" />
+                            </MudTooltip>
+                            <MudTooltip Text="Message Admin">
+                                <MudIcon Icon="@(context.Role.HasFlag(ChimeraUserRole.MessageAdmin) ?
+                                       Icons.Material.Filled.AllInbox :
+                                       Icons.Material.Outlined.AllInbox)"
+                                        Color="@(context.Role.HasFlag(ChimeraUserRole.MessageAdmin) ?
+                                        Color.Success : Color.Default)" />
+                            </MudTooltip>
+                            <MudTooltip Text="Can Submit Workflow Messages">
+                                <MudIcon Icon="@(context.Role.HasFlag(ChimeraUserRole.MessageDispatcher) ?
+                                       Icons.Material.Filled.Mail :
+                                       Icons.Material.Outlined.Mail)"
+                                        Color="@(context.Role.HasFlag(ChimeraUserRole.MessageDispatcher) ?
+                                        Color.Success : Color.Default)" />
+                            </MudTooltip>
+                        </MudTd>
+                        <MudTd>
+                            <div class="ml-auto mr-auto" style="width: fit-content">
+                                <MudTooltip Text="Delete" Placement="Placement.End">
+                                    <MudIconButton Color="Color.Error" @onclick="@(() => RemoveUser(context))" Icon="@Icons.Material.Filled.Delete" Size="Size.Small"></MudIconButton>
+                                </MudTooltip>
+                            </div>
+                        </MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] {10, 25, 50, 100}"/>
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+        @if (SelectedModel != null && !Startup.IgnoreUserPermissionRestrictions)
+        {
+            <MudItem md="12" lg="6">
+                <MudPaper Elevation="2" Class="p-0">
+                    <ManagePermissions User="@SelectedModel"/>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code
+{
+    private MudTable<UserModel> _table;
+    public List<UserModel> UserModels { get; set; } = new();
+    public UserModel SelectedModel { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    protected async Task EnrollUser()
+    {
+        var result = DialogService.Show<NewUserDialog>("Enroll User");
+        if (!result.Result.IsCanceled) await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        UserModels = await DbContext.Users
+            .Include(a => a.Permissions).ThenInclude(p => p.Agent)
+            .Include(a => a.Permissions).ThenInclude(p => p.Package)
+            .ToListAsync();
+        StateHasChanged();
+    }
+
+    private async Task TryExecute(Func<Task> task, string success, string failure)
+    {
+        try
+        {
+            await task();
+            Snackbar.Add(success, Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(failure + ": " + ex.Message, Severity.Error);
+        }
+        await Refresh();
+    }
+
+    protected Task RemoveUser(UserModel u)
+    {
+        return TryExecute(() => DataBoundApi.RemoveUser(u.UserId), "User removal completed", "User removal failed");
+    }
+}

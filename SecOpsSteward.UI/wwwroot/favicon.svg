@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="1000" height="1000"><style>
+    #light-icon {
+      display: inline;
+    }
+    #dark-icon {
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #light-icon {
+        display: none;
+      }
+      #dark-icon {
+        display: inline;
+      }
+    }
+  </style><g id="light-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="1000" height="1000"><rect width="1000" height="1000" rx="200" ry="200" fill="#99e6ff"></rect><g transform="matrix(2.8704700394689633,0,0,2.8704700394689633,99.99998858355684,101.24799996750045)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="278.7" height="277.85"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 278.7 277.85"><g id="Layer_2" data-name="Layer 2"><g id="Layer_1-2" data-name="Layer 1"><polygon points="278.7 0 278.7 75.07 247.18 75.07 247.18 32.94 230 32.94 230 91.68 278.7 91.68 278.7 200.14 247.18 217.83 230 227.47 198.47 245.17 198.47 140.64 230 140.64 230 189.46 247.18 179.82 247.18 124.03 198.47 124.03 198.47 0 278.7 0"></polygon><polygon points="80.23 0 80.23 75.07 48.7 75.07 48.7 32.94 31.53 32.94 31.53 91.68 80.23 91.68 80.23 243.73 48.7 225.8 31.53 216.04 0 198.12 0 140.64 31.53 140.64 31.53 178.04 48.7 187.8 48.7 124.03 0 124.03 0 0 80.23 0"></polygon><path d="M99.52,0V254.69l7.08,4,24.45,13.9,9.19,5.23,8-4.48L173.89,259l5.86-3.29V0Zm48.7,235.36-8,4.48-9.19-5.23V32.94h17.17Z"></path></g></g></svg></svg></g></svg></g><g id="dark-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="1000" height="1000"><rect width="1000" height="1000" rx="200" ry="200" fill="#0099cc"></rect><g transform="matrix(2.8704700394689633,0,0,2.8704700394689633,99.99998858355684,101.24799996750045)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.com/svgjs" width="278.7" height="277.85"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 278.7 277.85"><defs><style>.cls-1{fill:#fdfeff;}</style></defs><g id="Layer_2" data-name="Layer 2"><g id="Layer_1-2" data-name="Layer 1"><polygon class="cls-1" points="278.7 0 278.7 75.07 247.18 75.07 247.18 32.94 230 32.94 230 91.68 278.7 91.68 278.7 200.14 247.18 217.83 230 227.47 198.47 245.17 198.47 140.64 230 140.64 230 189.46 247.18 179.82 247.18 124.03 198.47 124.03 198.47 0 278.7 0"></polygon><polygon class="cls-1" points="80.23 0 80.23 75.07 48.7 75.07 48.7 32.94 31.53 32.94 31.53 91.68 80.23 91.68 80.23 243.73 48.7 225.8 31.53 216.04 0 198.12 0 140.64 31.53 140.64 31.53 178.04 48.7 187.8 48.7 124.03 0 124.03 0 0 80.23 0"></polygon><path class="cls-1" d="M99.52,0V254.69l7.08,4,24.45,13.9,9.19,5.23,8-4.48L173.89,259l5.86-3.29V0Zm48.7,235.36-8,4.48-9.19-5.23V32.94h17.17Z"></path></g></g></svg></svg></g></svg></g></svg>

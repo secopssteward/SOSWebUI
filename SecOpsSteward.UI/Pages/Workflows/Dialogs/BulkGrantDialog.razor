@@ -1,0 +1,81 @@
+﻿@using SecOpsSteward.Data.Workflow
+@using SecOpsSteward.Plugins
+@using SecOpsSteward.Shared.Packaging
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle1" Align="Align.Center">
+            The workflow plugins describe the Agent rights required to be granted as:
+        </MudText>
+        @if (_initialized)
+        {
+            @foreach (var item in RbacRequirements)
+            {
+                <h5>@item.Key.NodeName (@item.Key.Package.Name)</h5>
+                <MudExpansionPanels MultiExpansion="true">
+                    @foreach (var req in item.Value)
+                    {
+                        <MudExpansionPanel Text="@req.Description" Style="text-align: left">
+                            <pre style="line-break: anywhere; white-space: pre-wrap;">@req.TechnicalDescription</pre>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            }
+        }
+        else
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle"/>
+        }
+        <MudText Typo="Typo.subtitle1" Align="Align.Center">
+            Do you want to continue?
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="@Cancel">No</MudButton>
+        <MudButton Color="Color.Success" OnClick="@Process">Yes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [Parameter]
+    public SavedWorkflow Workflow { get; set; }
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    public PackageActionsService PackageActions { get; set; }
+
+    private Dictionary<SavedNode, List<PluginRbacRequirements>> RbacRequirements { get; } = new();
+    private Dictionary<PluginRbacRequirements, bool> _visibilities = new();
+
+    private bool _initialized;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(Workflow.Nodes.Select(async n =>
+        {
+            lock (RbacRequirements)
+                if (!RbacRequirements.ContainsKey(n))
+                    RbacRequirements.Add(n, new List<PluginRbacRequirements>());
+
+            var rbac = await PackageActions.GetRbacRequirements(n.PackageId, n.Parameters);
+            lock (RbacRequirements)
+                RbacRequirements[n].AddRange(rbac);
+        }));
+
+        _initialized = true;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+
+    private void Process()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

@@ -1,0 +1,17 @@
+﻿<div style="height: 100vh; width: 100vw;">
+    <MudContainer Class="d-flex justify-center align-center">
+        <div class="d-flex flex-column align-content-center" style="margin-top: 10%">
+            <MudPaper Elevation="3" Class="pa-10" Style="position: relative; text-align: center; width: 45em;">
+                <MudContainer Class="d-flex flex-column justify-center">
+                    @ChildContent
+                </MudContainer>
+            </MudPaper>
+        </div>
+    </MudContainer>
+</div>
+
+@code
+{
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+}

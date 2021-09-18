@@ -1,0 +1,153 @@
+﻿@page "/manage/agents"
+@using SecOpsSteward.UI.Pages.Manage.Dialogs
+
+<PageSections>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">Agent List</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This page allows you to list and edit the <b>Agents</b> which perform the actions associated with a <b>Plugin</b>.
+        </MudText>
+
+        <IconHelp Color="@Color.Primary" Icon="@Icons.Material.Filled.AddChart"
+                  Header="Enroll Agent">
+            You can click this button to select an Azure Function which contains the infrastructure for an <b>Agent</b>.
+            This can be deployed using the <pre class="d-inline">deploy-agent.ps1</pre> script in the repository.
+        </IconHelp>
+    </HelpDrawer>
+</PageSections>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudGrid>
+        <MudItem md="12" lg="@(SelectedModel != null ? 6 : 12)">
+            @if (DbContext.Agents.Any())
+            {
+                <MudPaper Elevation="2" Class="p-0" Style="text-align: right;">
+                    <MudTable @ref="_table" Elevation="0" Items="@AgentModels" @bind-SelectedItem="@SelectedModel" Hover="true" Striped="true">
+                        <ToolBarContent>
+                            <MudText Typo="Typo.h6">Agents</MudText>
+                            <MudSpacer/>
+                            <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" Disabled="@Startup.LockDiscovery" OnClick="@EnrollAgent" Class="mr-2 my-1">Enroll Agent</MudButton>
+                        </ToolBarContent>
+                        <HeaderContent>
+                            <MudTh>
+                                <MudTableSortLabel SortBy="new Func<AgentModel, object>(x => x.AgentId)">Agent ID</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh>
+                                <MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<AgentModel, object>(x => x.Tag)">Tag</MudTableSortLabel>
+                            </MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Agent ID">@context.AgentId.ShortId()</MudTd>
+                            <MudTd DataLabel="Tag">@context.Tag</MudTd>
+                            <MudTd>
+                                <div class="ml-auto mr-auto" style="width: fit-content">
+                                    <MudTooltip Text="Delete" Placement="Placement.End">
+                                        <MudIconButton Color="Color.Error" OnClick="@(() => RemoveAgent(context))" Icon="@Icons.Material.Filled.Delete" Size="Size.Small"></MudIconButton>
+                                    </MudTooltip>
+                                </div>
+                            </MudTd>
+                        </RowTemplate>
+                        <PagerContent>
+                            <MudTablePager PageSizeOptions="new[] {10, 25, 50, 100}"/>
+                        </PagerContent>
+                    </MudTable>
+                </MudPaper>
+            }
+            else
+            {
+                <ErrorText Title="No Agents Registered">
+                    Creating an Agent can be done in just a few easy steps:
+
+                    <ol class="pt-4 left mx-auto" style="text-align: left; width: 40em;">
+                        <li class="py-3">Run the <pre class="d-inline">deploy-agent.ps1</pre> script to deploy the Agent infrastructure and code</li>
+                        <li class="py-3">Wait for the Agent to come online</li>
+                        <li class="py-3">
+                            Use the <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" Disabled="@Startup.LockDiscovery" OnClick="@EnrollAgent" Class="mr-2 my-1">Enrollment Tool</MudButton>
+                            to register the Agent with this SecOps Steward system. You can give it a short name to identify it when using the Composer tool.
+                        </li>
+                        <li class="py-3">
+                            SecOps Steward will use the system managed identity for the deployed Agent when performing grants. All permissions will be assigned to this identity and all corresponding Workflow
+                            steps will be executed in this identity's context.
+                        </li>
+                    </ol>
+                </ErrorText>
+            }
+        </MudItem>
+        @if (SelectedModel != null && DbContext.Agents.Any() && !Startup.IgnoreUserPermissionRestrictions)
+        {
+            <MudItem md="12" lg="6">
+                <MudPaper Elevation="2" Class="p-0">
+                    <ManagePermissions Agent="@SelectedModel"/>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code
+{
+    private MudTable<AgentModel> _table;
+    public List<AgentModel> AgentModels { get; set; } = new();
+    public AgentModel SelectedModel { get; set; }
+
+    public Dictionary<AgentModel, bool> DetailsVisible { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    protected async Task EnrollAgent()
+    {
+        var result = DialogService.Show<NewAgentDialog>("Add Agent");
+        var canceled = await result.Result;
+        if (!canceled.Cancelled) await Refresh();
+    }
+
+    protected async Task RemoveAgent(AgentModel model)
+    {
+        var dlg = await DialogService.ShowMessageBox("Delete Agent",
+            "Are you sure you want to delete agent " + model.AgentId.ShortId() + "?",
+            "Yes", "No");
+
+        if (dlg.GetValueOrDefault(false))
+        {
+            Snackbar.Add("Starting Agent removal...", Severity.Info);
+
+            await TryExecute(() => DataBoundApi.RemoveAgent(model.AgentId),
+                "Agent removal completed",
+                "Agent removal failed");
+
+            Snackbar.Add("Agent removal complete!", Severity.Success);
+        }
+    }
+
+    private async Task Refresh()
+    {
+        AgentModels = await DbContext.Agents
+            .Include(a => a.Permissions).ThenInclude(p => p.User)
+            .Include(a => a.Permissions).ThenInclude(p => p.Package)
+            .ToListAsync();
+        StateHasChanged();
+    }
+
+    private async Task TryExecute(Func<Task> task, string success, string failure)
+    {
+        try
+        {
+            await task();
+            Snackbar.Add(success, Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(failure + ": " + ex.Message, Severity.Error);
+        }
+        await Refresh();
+    }
+
+    protected Task EditAgent(AgentModel m)
+    {
+        return TryExecute(() => DataBoundApi.ChangeTag(m.AgentId, m.Tag), "Agent tag updated", "Agent update failed");
+    }
+}

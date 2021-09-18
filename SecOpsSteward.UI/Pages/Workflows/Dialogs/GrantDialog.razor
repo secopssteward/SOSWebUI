@@ -1,0 +1,70 @@
+﻿@using SecOpsSteward.Plugins.Configurable
+@using SecOpsSteward.Shared.Packaging
+@using SecOpsSteward.Plugins
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle1" Align="Align.Center">
+            The plugin describes the Agent rights required to be granted as:
+        </MudText>
+        @if (_initialized)
+        {
+            <MudExpansionPanels MultiExpansion="true">
+                @foreach (var req in RbacRequirements)
+                {
+                    <MudExpansionPanel Text="@req.Description" Style="text-align: left">
+                        <pre style="line-break: anywhere; white-space: pre-wrap;">@req.TechnicalDescription</pre>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+        }
+        else
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle"/>
+        }
+        <MudText Typo="Typo.subtitle1" Align="Align.Center">
+            Do you want to continue?
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Error" OnClick="@Cancel">No</MudButton>
+        <MudButton Color="Color.Success" OnClick="@Process">Yes</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [Parameter]
+    public ChimeraPackageIdentifier PluginId { get; set; }
+
+    [Parameter]
+    public ConfigurableObjectParameterCollection Configuration { get; set; }
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Inject]
+    public PackageActionsService PackageActions { get; set; }
+
+    private IEnumerable<PluginRbacRequirements> RbacRequirements { get; set; } = new List<PluginRbacRequirements>();
+    private Dictionary<PluginRbacRequirements, bool> _visibilities = new();
+
+    private bool _initialized;
+
+    protected override async Task OnInitializedAsync()
+    {
+        RbacRequirements = await PackageActions.GetRbacRequirements(PluginId, Configuration);
+        _initialized = true;
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+
+    private void Process()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+}

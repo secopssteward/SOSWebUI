@@ -1,0 +1,194 @@
+/* SVG Artista Effect */
+@-webkit-keyframes animate-svg-stroke-1 {
+    0% {
+        stroke-dasharray: 989.142822265625px;
+        stroke-dashoffset: 989.142822265625px;
+    }
+
+    100% {
+        stroke-dasharray: 989.142822265625px;
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes animate-svg-stroke-1 {
+    0% {
+        stroke-dasharray: 989.142822265625px;
+        stroke-dashoffset: 989.142822265625px;
+    }
+
+    100% {
+        stroke-dasharray: 989.142822265625px;
+        stroke-dashoffset: 0;
+    }
+}
+
+@-webkit-keyframes animate-svg-fill-1 {
+    0% { fill: transparent }
+
+    100% { fill: rgb(0, 153, 204) }
+}
+
+@keyframes animate-svg-fill-1 {
+    0% { fill: transparent }
+
+    100% { fill: rgb(0, 153, 204) }
+}
+
+.svg-elem-1 {
+    -webkit-animation: animate-svg-stroke-1 2s ease-in 0s both, animate-svg-fill-1 0.5s linear 2s both;
+    animation: animate-svg-stroke-1 2s ease-in 0s both, animate-svg-fill-1 0.5s linear 2s both
+}
+
+@-webkit-keyframes animate-svg-stroke-2 {
+    0% {
+        stroke-dasharray: 982.568359375px;
+        stroke-dashoffset: 982.568359375px;
+    }
+
+    100% {
+        stroke-dasharray: 982.568359375px;
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes animate-svg-stroke-2 {
+    0% {
+        stroke-dasharray: 982.568359375px;
+        stroke-dashoffset: 982.568359375px;
+    }
+
+    100% {
+        stroke-dasharray: 982.568359375px;
+        stroke-dashoffset: 0;
+    }
+}
+
+@-webkit-keyframes animate-svg-fill-2 {
+    0% { fill: transparent }
+
+    100% { fill: rgb(0, 153, 204) }
+}
+
+@keyframes animate-svg-fill-2 {
+    0% { fill: transparent }
+
+    100% { fill: rgb(0, 153, 204) }
+}
+
+.svg-elem-2 {
+    -webkit-animation: animate-svg-stroke-2 2s ease-in 0s both, animate-svg-fill-2 0.5s linear 2.05s both;
+    animation: animate-svg-stroke-2 2s ease-in 0s both, animate-svg-fill-2 0.5s linear 2.05s both
+}
+
+@-webkit-keyframes animate-svg-stroke-3 {
+    0% {
+        stroke-dasharray: 1125.7393798828125px;
+        stroke-dashoffset: 1125.7393798828125px;
+    }
+
+    100% {
+        stroke-dasharray: 1125.7393798828125px;
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes animate-svg-stroke-3 {
+    0% {
+        stroke-dasharray: 1125.7393798828125px;
+        stroke-dashoffset: 1125.7393798828125px;
+    }
+
+    100% {
+        stroke-dasharray: 1125.7393798828125px;
+        stroke-dashoffset: 0;
+    }
+}
+
+@-webkit-keyframes animate-svg-fill-3 {
+    0% { fill: transparent }
+
+    100% { fill: rgb(0, 153, 204) }
+}
+
+@keyframes animate-svg-fill-3 {
+    0% { fill: transparent }
+
+    100% { fill: rgb(0, 153, 204) }
+}
+
+.svg-elem-3 {
+    -webkit-animation: animate-svg-stroke-3 2s ease-in 0s both, animate-svg-fill-3 0.5s linear 2.1s both;
+    animation: animate-svg-stroke-3 2s ease-in 0s both, animate-svg-fill-3 0.5s linear 2.1s both
+}
+
+/* ----------------------------------------------------------- */
+
+#instructions {
+    left: 50%;
+    position: fixed;
+}
+
+#a, #b {
+    color: white;
+    height: 20px;
+    left: 100px;
+    padding: 10px;
+    position: fixed;
+    text-align: center;
+    width: 100px;
+}
+
+#a {
+    background-color: blue;
+    top: 20px;
+}
+
+#b {
+    background-color: red;
+    top: 150px;
+}
+
+
+
+.icon-baseline-adjustment {
+    position: relative;
+    top: 0.2em;
+}
+
+body, html { font-family: Raleway, sans-serif; }
+
+a, .btn-link { color: #0366d6; }
+
+.btn-primary {
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+    color: #fff;
+}
+
+.content { padding-top: 1.1rem; }
+
+.valid.modified:not([type=checkbox]) { outline: 1px solid #26b050; }
+
+.invalid { outline: 1px solid red; }
+
+.validation-message { color: red; }
+
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
