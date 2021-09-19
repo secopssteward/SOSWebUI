@@ -54,14 +54,13 @@
         Diagram.Links.Clear();
         Diagram.Groups.ToList().ForEach(g => Diagram.RemoveGroup(g));
         Diagram.Nodes.Clear();
+        Diagram.Refresh();
 
         LoadedWorkflow = value;
         LoadedWorkflowId = value.WorkflowId;
         if (!string.IsNullOrEmpty(value.WorkflowJson))
-        {
             Diagram.LoadWorkflow(value.SavedData, DbContext.Plugins.Include(p => p.ManagedService).ToList());
-            StateHasChanged();
-        }
+
         StateHasChanged();
     }
 
@@ -89,6 +88,8 @@
         Diagram.SelectionChanged += e =>
         {
             Diagram.Nodes.Cast<WorkflowComposerNode>().ToList().ForEach(n => n.IsSelected = false);
+            Diagram.Refresh();
+            StateHasChanged();
 
             if (e is LinkModel)
             {
@@ -264,6 +265,8 @@
 
     private void AddNode(WorkflowComposerNode node)
     {
+    // !!! This method is called to place a node from _anywhere_! Default visual structure is determined from here! !!!
+
         var paddingX = 50;
         var paddingY = 100;
 
@@ -288,7 +291,7 @@
         }
 
         double x, y;
-        if (lastNode.Position.X + sizeX > Diagram.Container.Right - Diagram.Container.Width / 10)
+        if (lastNode.Position.X + sizeX > Diagram.Container.Right - Diagram.Container.Width / 5)
         {
     // wraps
             x = Diagram.Container.Left + paddingX;

@@ -105,6 +105,7 @@ namespace SecOpsSteward.UI.Pages.Workflows.Composer
             var steps = new ExecutionStepCollection();
             var parent = steps.AddStepWithoutSigning(rootStep.AgentId, rootStep.PackageId, null,
                 ChimeraSharedHelpers.SerializeToString(rootStep.Parameters.AsDictionary()));
+            parent.StepId = rootStep.WorkflowStepId;
             rootStep.AuthorizingMessage = parent;
             foreach (var next in rootStep.LinksOut)
                 AddStepsToCollection(steps, parent, next);
@@ -119,6 +120,7 @@ namespace SecOpsSteward.UI.Pages.Workflows.Composer
                 var parent = steps.AddStepWithoutSigning(parentStep, lastOutputs.Key, thisStep.AgentId,
                     thisStep.PackageId, null,
                     ChimeraSharedHelpers.SerializeToString(thisStep.Parameters.AsDictionary()));
+                parent.StepId = thisStep.WorkflowStepId;
                 thisStep.AuthorizingMessage = parent;
                 foreach (var next in thisStep.LinksOut)
                     AddStepsToCollection(steps, parent, next);

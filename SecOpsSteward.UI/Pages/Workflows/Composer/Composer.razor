@@ -87,7 +87,7 @@
     </HelpDrawer>
 </PageSections>
 
-@if (!DbContext.Plugins.Any())
+@if (_noPlugins)
 {
     <ErrorText Title="No Plugins Installed">
         Use of the Composer tool requires at least one Package to be installed. Go to
@@ -123,9 +123,12 @@ else
 
     private bool _loading;
     private bool _newWf;
+    private bool _noPlugins = false;
 
     protected override async Task OnInitializedAsync()
     {
+        _noPlugins = !DbContext.Plugins.Any();
+
         if (WorkflowId == null) return;
 
         if (_loading) return;
@@ -133,31 +136,27 @@ else
         if (WorkflowId != null && Workflow != null && Workflow.WorkflowId == WorkflowId.GetValueOrDefault()) return;
         _loading = true;
 
-        using (var cxt = DbContextFactory.CreateDbContext())
+        if (_noPlugins) return;
+
+        Workflow = DbContext.Workflows.FirstOrDefault(w => w.WorkflowId == WorkflowId);
+
+        DbContext.ChangeTracker.Clear();
+
+        if (Workflow == null)
         {
-            if (!DbContext.Plugins.Any()) return;
-
-            Workflow = DbContext.Workflows.FirstOrDefault(w => w.WorkflowId == WorkflowId);
-
-            DbContext.ChangeTracker.Clear();
-
-            if (Workflow == null)
-            {
-                Workflow = new WorkflowModel {WorkflowId = WorkflowId.GetValueOrDefault(Guid.NewGuid())};
-                if (!DbContext.Workflows.Local.Any(wf => wf.WorkflowId == Workflow.WorkflowId))
-                    DbContext.Workflows.Add(Workflow);
-                _newWf = true;
-            }
-            else _newWf = false;
-
-            await Task.Run(async () =>
-            {
-                await Task.Delay(500);
-                await InvokeAsync(() => ComposerComponent.Load(Workflow));
-            });
+            Workflow = new WorkflowModel {WorkflowId = WorkflowId.GetValueOrDefault(Guid.NewGuid())};
+            if (!DbContext.Workflows.Local.Any(wf => wf.WorkflowId == Workflow.WorkflowId))
+                DbContext.Workflows.Add(Workflow);
+            _newWf = true;
         }
+        else _newWf = false;
 
-        _loading = false;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(300);
+            await InvokeAsync(() => ComposerComponent.Load(Workflow));
+            _loading = false;
+        });
     }
 
 
