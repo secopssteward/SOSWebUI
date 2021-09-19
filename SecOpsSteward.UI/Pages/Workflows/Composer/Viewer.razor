@@ -132,6 +132,7 @@
                     MessageProcessor.SetExecutionApproval(null);
             });
         });
+        Snackbar.Add("Message queued on bus. You will receive a confirmation dialog in a moment. Click 'Yes' at each prompt to run the Workflow step.");
     }
 
     private async Task ExecuteOnAgent()
@@ -148,6 +149,7 @@
                     MessageProcessor.SetExecutionApproval(null);
             });
         });
+        Snackbar.Add("Message dispatched to first Agent; as receipts come in they will be added to this view.");
     }
 
     private async Task<bool> GetApproval(EncryptedMessageEnvelope envelope)

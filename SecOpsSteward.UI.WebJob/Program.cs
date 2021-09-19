@@ -39,7 +39,8 @@ namespace SecOpsSteward.UI.WebJob
             {
                 {"SubscriptionId", Configuration.GetSection("Chimera")["SubscriptionId"]},
                 {"ResourceGroup", Configuration.GetSection("Chimera")["ResourceGroup"]},
-                {"VaultName", Configuration.GetSection("Chimera")["VaultName"]},
+                {"UserVaultName", Configuration.GetSection("Chimera")["UserVaultName"]},
+                {"AgentVaultName", Configuration.GetSection("Chimera")["AgentVaultName"]},
                 {"PackageRepoAccount", Configuration.GetSection("Chimera")["PackageRepoAccount"]},
                 {"PackageRepoContainer", Configuration.GetSection("Chimera")["PackageRepoContainer"]},
                 {"ServiceBusNamespace", Configuration.GetSection("Chimera")["ServiceBusNamespace"]},

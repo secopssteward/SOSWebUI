@@ -12,16 +12,20 @@
         <MudTabs Elevation="2" Rounded="true" Centered="true" Position="Position.Bottom">
 
             <MudTabPanel Icon="@Icons.Material.Filled.List" Text="Services">
+                <MudContainer>
                 <SecOpsSteward.UI.Widgets.ServiceCollectionResourceSelectorWidget
                     Services="@DbContext.ManagedServices.ToList()"
                     @bind-SelectedResourceGroups="@ResourceGroups"
                     @bind-SelectedSubscription="@Subscription"
                     SelectedResources="@SelectedServices"
                     SelectedResourcesChanged="@SelectedServicesChanged"/>
+                </MudContainer>
             </MudTabPanel>
 
             <MudTabPanel Icon="@Icons.Material.Filled.InsertLink" Text="Links"
                          Disabled="@(!SelectedServices.Any())">
+                
+                <MudContainer>
                 @if (ServiceLinksLoading)
                 {
                     <MudSkeleton SkeletonType="SkeletonType.Rectangle" />
@@ -45,6 +49,7 @@
                     }
                 </MudList>
                 }
+                </MudContainer>
             </MudTabPanel>
 
             <MudTabPanel Icon="@Icons.Material.Filled.Highlight" Text="Templates"
@@ -54,22 +59,20 @@
                     var suggestion = allTemplateSuggestions[TemplatePage];
                 }
 
-                <div class="d-block mx-3 mt-0 mb-4" Style="border: 1px solid #aaa; font-size: 0.8rem;">
-                    <ol class="templateList">
+                <MudContainer>
+                    <MudTimeline>
                         @foreach (var link in suggestion)
                         {
-                            <li>
-                                <a href="#" class="px-2 pl-3">@link.WorkflowStepName</a>
-                                <small class="text-right d-block text-muted mb-2 mr-1" style="position: relative; top: -0.3em;">@link.ServiceConfiguration.DescriptiveName</small>
-                            </li>
+                            <MudTimelineItem Size="Size.Small" TimelineAlign="TimelineAlign.Start">
+                                <ItemOpposite><MudText Typo="Typo.body1" Color="Color.Primary">@link.WorkflowStepName</MudText></ItemOpposite>
+                                <ItemContent><MudText Typo="Typo.subtitle2" Color="Color.Secondary">@link.ServiceConfiguration.DescriptiveName</MudText></ItemContent>
+                            </MudTimelineItem>
                         }
-                    </ol>
-                    <div class="text-center">
-                        <MudButton Size="Size.Small" Class="mx-auto my-1 py-1 px-3" OnClick="@(() => { TemplateAdded.InvokeAsync(suggestion); })" Color="Color.Success">Add</MudButton>
-                    </div>
-                </div>
+                    </MudTimeline>
+                    <MudButton Size="Size.Small" Class="mx-auto my-1 py-1 px-3" OnClick="@(() => { TemplateAdded.InvokeAsync(suggestion); })" Color="Color.Success">Add</MudButton>
 
-                <MudPagination Variant="Variant.Outlined" SelectedChanged="@(s => { TemplatePage = s - 1; StateHasChanged(); })" Count="@allTemplateSuggestions.Count"/>
+                    <MudPagination Variant="Variant.Outlined" SelectedChanged="@(s => { TemplatePage = s - 1; StateHasChanged(); })" Count="@allTemplateSuggestions.Count"/>
+                </MudContainer>
             </MudTabPanel>
 
         </MudTabs>
