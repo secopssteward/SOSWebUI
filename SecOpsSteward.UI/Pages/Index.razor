@@ -11,6 +11,7 @@
 
 @inject AzureCurrentCredentialFactory Platform
 @inject NavigationManager NavManager
+@inject IRoleAssignmentService RoleAssignment
 
 @code
 {
@@ -43,8 +44,24 @@
                 {
                     Startup.FirstRun = true;
                     await DataBoundApi.AddUser(TokenOwner.Create(null, false), ChimeraUserRole.GlobalAdmin);
-                    await DataBoundApi.AddUser("bob", ChimeraUserRole.MessageDispatcher);
-                    await DataBoundApi.AddUser("jane", ChimeraUserRole.PackageAdmin);
+
+                    var bobResolved = await RoleAssignment.ResolveUsername("bob");
+                    await DataBoundApi.AddUser(new TokenOwner()
+                        {
+                            UserId = bobResolved.UserId,
+                            Aliases = new List<string>() { "bob@contoso.com" },
+                            Name = "Bob Jones",
+                            Email = "bob@contoso.com"
+                        }, ChimeraUserRole.MessageDispatcher);
+
+                    var janeResolved = await RoleAssignment.ResolveUsername("jane");
+                    await DataBoundApi.AddUser(new TokenOwner()
+                        {
+                            UserId = janeResolved.UserId,
+                            Aliases = new List<string>() { "jane@contoso.com" },
+                            Name = "Jane Smith",
+                            Email = "jane@contoso.com"
+                        }, ChimeraUserRole.PackageAdmin);
                 }
                 break;
             }
