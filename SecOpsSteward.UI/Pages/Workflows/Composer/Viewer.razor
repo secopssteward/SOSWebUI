@@ -20,13 +20,15 @@
         }
     </TitleBar>
     <ButtonBar>
-        @*<MudIconButton Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@(!Workflow.IsLocked)" />*@
         <MudTooltip Text="Run Workflow Using Authenticated User">
             <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@Startup.LockDiscovery"/>
         </MudTooltip>
+        @if (CurrentUser.Role.HasFlag(ChimeraUserRole.MessageDispatcher))
+         {
         <MudTooltip Text="Submit Workflow to Agents Immediately">
             <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.Send" OnClick="@ExecuteOnAgent"/>
         </MudTooltip>
+         }
     </ButtonBar>
     <SecondaryDrawer>
         <SecOpsSteward.UI.Pages.Workflows.Composer.Panels.ReviewDrawer

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Blazored.SessionStorage;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
@@ -122,9 +123,16 @@ namespace SecOpsSteward.UI
             }
 
             // Register TokenOwner for user information, avatar, etc
-            services.AddScoped(s => TokenOwner.Create(
-                s.GetRequiredService<AuthenticationStateProvider>().GetAuthenticationStateAsync().Result,
-                HasAuthConfiguration));
+            services.AddScoped(s =>
+            {
+                var state = s.GetRequiredService<AuthenticationStateProvider>().GetAuthenticationStateAsync().Result;
+                var token = TokenOwner.Create(state, HasAuthConfiguration);
+
+                var myUser = s.GetService<SecOpsStewardDbContext>().Users.FirstOrDefault(f => f.UserId == token.UserId.Id);
+                if (myUser != null) token.Role = myUser.Role;
+
+                return token;
+            });
         }
 
         private ChimeraServiceConfigurator RegisterChimeraServices(IServiceCollection services)

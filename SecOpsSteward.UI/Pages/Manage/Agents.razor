@@ -26,7 +26,7 @@
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">Agents</MudText>
                             <MudSpacer/>
-                            <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Disabled="@Startup.RunDemoMode" Class="mr-2 my-1">Enroll Agent</MudButton>
+                            <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Disabled="@(Startup.RunDemoMode || !CurrentUser.Role.HasFlag(ChimeraUserRole.AgentAdmin))" Class="mr-2 my-1">Enroll Agent</MudButton>
                         </ToolBarContent>
                         <HeaderContent>
                             <MudTh>
@@ -63,7 +63,7 @@
                         <li class="py-3">Run the <pre class="d-inline">deploy-agent.ps1</pre> script to deploy the Agent infrastructure and code</li>
                         <li class="py-3">Wait for the Agent to come online</li>
                         <li class="py-3">
-                            Use the <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Disabled="@Startup.RunDemoMode" Class="mr-2 my-1">Enrollment Tool</MudButton>
+                            Use the <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Disabled="@(Startup.RunDemoMode || !CurrentUser.Role.HasFlag(ChimeraUserRole.AgentAdmin))" Class="mr-2 my-1">Enrollment Tool</MudButton>
                             to register the Agent with this SecOps Steward system. You can give it a short name to identify it when using the Composer tool.
                         </li>
                         <li class="py-3">
