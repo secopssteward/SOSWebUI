@@ -58,6 +58,11 @@ namespace SecOpsSteward.UI
         public static bool UseDummyServices => RunDemoMode || Instance.Configuration.GetValue<bool>("UseDummyServices");
 
         /// <summary>
+        ///     If a SQLite "dummy" database should be used
+        /// </summary>
+        public static bool UseDummyDatabase => UseDummyServices || Instance.Configuration.GetValue<bool>("UseDummyDatabase");
+
+        /// <summary>
         ///     If Auto-Discovery/Resource Explorers are enabled
         /// </summary>
         public static bool LockDiscovery => RunDemoMode || Instance.Configuration.GetValue("DisableDiscovery", false);
@@ -163,7 +168,7 @@ namespace SecOpsSteward.UI
                 options.EnableDetailedErrors();
 
                 // If using dummy integrations, fall back to SQLite
-                if (UseDummyServices)
+                if (UseDummyServices || UseDummyDatabase)
                     options.UseSqlite("Data Source=sos.db")
                         .EnableSensitiveDataLogging(); // TODO: Disable
 
