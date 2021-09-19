@@ -26,6 +26,7 @@
 @* Services *@
 @inject DataBoundApi DataBoundApi
 @inject SecOpsStewardDbContext DbContext
+@inject IDbContextFactory<SecOpsStewardDbContext> DbContextFactory
 @inject TokenOwner CurrentUser
 
 @inject AzureCurrentCredentialFactory Platform

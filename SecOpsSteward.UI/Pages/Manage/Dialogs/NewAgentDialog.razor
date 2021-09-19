@@ -3,10 +3,7 @@
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.subtitle1" Align="Align.Center">
-            If you don't already have a Functions App deployed, click here to deploy a new app with the Agent template to Azure:<br/>
-            <a class="mx-auto my-1" href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fanthturner%2FSecOpsSteward%2Fmaster%2Fdeploy%2FSecOpsSteward.json">
-                <img src="https://aka.ms/deploytoazurebutton" alt="Deploy to Azure Button"/>
-            </a>
+            If you don't already have a Functions App deployed, <a href="https://docs.secopssteward.com/install-and-get-started/create-an-agent">click here</a> to check out the simple process of deploying a new Agent.
         </MudText>
 
         <AzureFunctionSelectorWidget @bind-SelectedFunction="@SelectedFunction"/>

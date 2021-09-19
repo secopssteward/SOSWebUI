@@ -11,7 +11,7 @@
         <IconHelp Color="@Color.Primary" Icon="@Icons.Material.Filled.AddChart"
                   Header="Enroll Agent">
             You can click this button to select an Azure Function which contains the infrastructure for an <b>Agent</b>.
-            This can be deployed using the <pre class="d-inline">deploy-agent.ps1</pre> script in the repository.
+            This can be deployed using the <a href="https://github.com/secopssteward/SecOpsSteward/blob/master/deploy/deploy-agent.ps1"><pre class="d-inline">deploy-agent.ps1</pre></a> script in the repository.
         </IconHelp>
     </HelpDrawer>
 </PageSections>
@@ -26,7 +26,7 @@
                         <ToolBarContent>
                             <MudText Typo="Typo.h6">Agents</MudText>
                             <MudSpacer/>
-                            <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Class="mr-2 my-1">Enroll Agent</MudButton>
+                            <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Disabled="@Startup.RunDemoMode" Class="mr-2 my-1">Enroll Agent</MudButton>
                         </ToolBarContent>
                         <HeaderContent>
                             <MudTh>
@@ -63,7 +63,7 @@
                         <li class="py-3">Run the <pre class="d-inline">deploy-agent.ps1</pre> script to deploy the Agent infrastructure and code</li>
                         <li class="py-3">Wait for the Agent to come online</li>
                         <li class="py-3">
-                            Use the <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Class="mr-2 my-1">Enrollment Tool</MudButton>
+                            Use the <MudButton Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddChart" OnClick="@EnrollAgent" Disabled="@Startup.RunDemoMode" Class="mr-2 my-1">Enrollment Tool</MudButton>
                             to register the Agent with this SecOps Steward system. You can give it a short name to identify it when using the Composer tool.
                         </li>
                         <li class="py-3">
@@ -125,11 +125,14 @@
 
     private async Task Refresh()
     {
-        AgentModels = await DbContext.Agents
-            .Include(a => a.Permissions).ThenInclude(p => p.User)
-            .Include(a => a.Permissions).ThenInclude(p => p.Package)
-            .ToListAsync();
-        StateHasChanged();
+        using (var cxt = DbContextFactory.CreateDbContext())
+        {
+            AgentModels = await cxt.Agents
+                .Include(a => a.Permissions).ThenInclude(p => p.User)
+                .Include(a => a.Permissions).ThenInclude(p => p.Package)
+                .ToListAsync();
+            StateHasChanged();
+        }
     }
 
     private async Task TryExecute(Func<Task> task, string success, string failure)
