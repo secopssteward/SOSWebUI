@@ -42,6 +42,7 @@ namespace SecOpsSteward.Data
             {
                 UserId = tokenOwner.UserId.Id,
                 DisplayName = tokenOwner.Name,
+                Role = role,
                 Username = string.Join(',', tokenOwner.Aliases.Append(tokenOwner.Email))
             };
 
