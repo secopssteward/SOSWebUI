@@ -1,8 +1,8 @@
-﻿<MudText Typo="Typo.h3" Class="py-6" Style="text-align: center;">
+﻿<MudText Typo="@(Small ? Typo.h4 : Typo.h3)" Class="py-6" Style="text-align: center;">
     <MudIcon Color="@Color.Error" Size="Size.Large" Icon="@Icons.Material.Filled.ErrorOutline" Class="mr-1"/>
     @Title
 </MudText>
-<MudText Typo="Typo.subtitle1" Class="py-6" Style="text-align: center;">
+<MudText Typo="@(Small ? Typo.subtitle2 : Typo.subtitle1)" Class="py-6" Style="text-align: center;">
     @ChildContent
 </MudText>
 
@@ -13,4 +13,7 @@
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public bool Small { get; set; } = false;
 }

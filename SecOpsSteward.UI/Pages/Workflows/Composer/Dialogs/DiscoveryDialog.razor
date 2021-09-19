@@ -20,7 +20,21 @@
                     SelectedResourcesChanged="@SelectedServicesChanged"/>
             </MudTabPanel>
 
-            <MudTabPanel Icon="@Icons.Material.Filled.InsertLink" Text="Links">
+            <MudTabPanel Icon="@Icons.Material.Filled.InsertLink" Text="Links"
+                         Disabled="@(!SelectedServices.Any())">
+                @if (ServiceLinksLoading)
+                {
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" />
+                }
+                else if (!ServiceLinks.Any())
+                {
+                    <MudContainer>
+                        <ErrorText Small="true" Title="No Links Discovered">
+                            The selected services do not have any relationships that are detectable by the Discovery Wziard.
+                        </ErrorText>
+                    </MudContainer>
+                }
+                else {
                 <MudList>
                     @foreach (var item in ServiceLinks)
                     {
@@ -30,9 +44,11 @@
                         <MudListItem Icon="@icon" Text="@label" OnClick="@(() => { if (SelectedServiceLinks.Contains(item)) { SelectedServiceLinks.Remove(item); } else { SelectedServiceLinks.Add(item); } StateHasChanged(); })"></MudListItem>
                     }
                 </MudList>
+                }
             </MudTabPanel>
 
-            <MudTabPanel Icon="@Icons.Material.Filled.Highlight" Text="Templates">
+            <MudTabPanel Icon="@Icons.Material.Filled.Highlight" Text="Templates"
+                         Disabled="@(!SelectedServiceLinks.Any())">
                 @{
                     var allTemplateSuggestions = SelectedServiceLinks.SelectMany(ssl => DiscoveryService.GetTemplateSuggestions(ssl)).ToList();
                     var suggestion = allTemplateSuggestions[TemplatePage];
@@ -74,18 +90,22 @@
     protected ISubscription Subscription { get; set; }
     protected HashSet<IResourceGroup> ResourceGroups { get; set; } = new();
 
-    protected HashSet<DiscoveredServiceConfiguration> SelectedServices { get; set; }
+    protected HashSet<DiscoveredServiceConfiguration> SelectedServices { get; set; } = new();
     protected List<List<DiscoveredServiceConfiguration>> ServiceLinks { get; set; } = new();
 
     protected List<List<DiscoveredServiceConfiguration>> SelectedServiceLinks { get; set; } = new();
 
     protected int TemplatePage { get; set; }
 
+    private bool ServiceLinksLoading { get; set; } = true;
+
     protected Task SelectedServicesChanged(HashSet<DiscoveredServiceConfiguration> services)
     {
+        ServiceLinksLoading = true;
         SelectedServices = services;
         ServiceLinks = DiscoveryService.CreateServiceLinksAndPaths(SelectedServices.ToList());
         StateHasChanged();
+        ServiceLinksLoading = false;
         return Task.CompletedTask;
     }
 

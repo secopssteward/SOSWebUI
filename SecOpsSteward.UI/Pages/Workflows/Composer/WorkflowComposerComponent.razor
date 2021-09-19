@@ -271,32 +271,39 @@
         {
             node.SetPosition(Diagram.Container.Left + paddingX, Diagram.Container.Top + paddingY);
             Diagram.Nodes.Add(node);
+            Diagram.Refresh();
+            StateHasChanged();
             return;
         }
 
         var lastNode = Diagram.Nodes.OrderByDescending(d => d.Position.Y).ThenByDescending(d => d.Position.X).First();
-
-        var timeout = DateTime.UtcNow.AddMinutes(1);
-        while (lastNode.Size == null && DateTime.UtcNow < timeout)
+    
+    // take a guess
+        double sizeX = 250;
+        double sizeY = 120;
+        if(lastNode.Size != null)
         {
-            Thread.Sleep(100);
+            sizeX = lastNode.Size.Width;
+            sizeY = lastNode.Size.Height;
         }
 
         double x, y;
-        if (lastNode.Position.X + lastNode.Size.Width > Diagram.Container.Right - Diagram.Container.Width / 10)
+        if (lastNode.Position.X + sizeX > Diagram.Container.Right - Diagram.Container.Width / 10)
         {
     // wraps
             x = Diagram.Container.Left + paddingX;
-            y = lastNode.Position.Y + lastNode.Size.Height + paddingY;
+            y = lastNode.Position.Y + sizeY + paddingY;
         }
         else
         {
-            x = lastNode.Position.X + lastNode.Size.Width + paddingX;
+            x = lastNode.Position.X + sizeX + paddingX;
             y = lastNode.Position.Y;
         }
 
         node.SetPosition(x, y);
         Diagram.Nodes.Add(node);
+        Diagram.Refresh();
+        StateHasChanged();
     }
 
     /// <summary>

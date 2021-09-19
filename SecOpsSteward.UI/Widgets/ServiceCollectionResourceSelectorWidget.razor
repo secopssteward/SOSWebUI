@@ -17,15 +17,14 @@
     @if (ResourceGroups != null && ResourceGroups.Any())
     {
         <MudItem xs="12">
-            <MudSelect T="string" Label="Resource Group" Strict="true" Variant="Variant.Outlined" Class="py-2"
-                       ToStringFunc="@(s => s == null ? "No resource groups selected" : ResourceGroups.First(rg => rg.Id == s).Name)"
-                       MultiSelectionTextFunc="@(t => string.Join(", ", t))" MultiSelection="true"
-                       @bind-Value="@SelectedRG"
-                       SelectedValues="@SelectedRGs" SelectedValuesChanged="@(v => SelectedRGs = v)"
-                       OnBlur="@(b => SetResourceGroups())">
+            <MudSelect T="IResourceGroup" Label="Resource Group" Variant="Variant.Outlined" Class="py-2"
+                       MultiSelection="true"
+                       MultiSelectionTextFunc="@(t => string.Join(", ", SelectedRGs.Select(r => r.Name)))"
+                       OnBlur="@(b => SetResourceGroups())"
+                       @bind-SelectedValues="@SelectedRGs">                       
                 @foreach (var resourceGroup in ResourceGroups.OrderBy(rg => rg.Name))
                 {
-                    <MudSelectItem T="string" Value="@resourceGroup.Id">@resourceGroup.Name</MudSelectItem>
+                    <MudSelectItem T="IResourceGroup" Value="@resourceGroup">@resourceGroup.Name</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
@@ -34,11 +33,11 @@
     @if (_resourcesLoaded)
     {
         <MudItem xs="12">
-            <MudSelect T="DiscoveredServiceConfiguration" Label="Resource" Strict="true" Variant="Variant.Outlined" Class="py-2"
-                       ToStringFunc="@(s => s == null ? "No resource groups selected" : s.DescriptiveName)"
-                       MultiSelectionTextFunc="@(t => t.Count + " resources selected")" MultiSelection="true"
-                       SelectedValues="@SelectedResources" SelectedValuesChanged="@SetResources"
-                       OnBlur="@(b => { })">
+            <MudSelect T="DiscoveredServiceConfiguration" Label="Resource" Variant="Variant.Outlined" Class="py-2"
+                       MultiSelectionTextFunc="@(t => SelectedRs.Count + " resources selected")" 
+                       MultiSelection="true"
+                       @bind-SelectedValues="@SelectedRs"
+                       OnBlur="@(b => SetResources())">
                 @foreach (var resource in Resources.OrderBy(r => r.DescriptiveName))
                 {
                     <MudSelectItem T="DiscoveredServiceConfiguration" Value="@resource">@resource.DescriptiveName</MudSelectItem>
@@ -54,8 +53,8 @@
 
 @code
 {
-    public HashSet<string> SelectedRGs { get; set; } = new();
-    private string SelectedRG;
+    public HashSet<IResourceGroup> SelectedRGs { get; set; } = new();
+    public HashSet<DiscoveredServiceConfiguration> SelectedRs { get; set; } = new();
 
     // Select N resources from all given ManagedServiceModels
 
@@ -88,7 +87,7 @@
     public EventCallback<HashSet<IResourceGroup>> SelectedResourceGroupsChanged { get; set; }
 
     [Parameter]
-    public HashSet<DiscoveredServiceConfiguration> SelectedResources { get; set; }
+    public HashSet<DiscoveredServiceConfiguration> SelectedResources { get; set; } = new();
 
     [Parameter]
     public EventCallback<HashSet<DiscoveredServiceConfiguration>> SelectedResourcesChanged { get; set; }
@@ -113,7 +112,7 @@
 
     protected async Task SetResourceGroups()
     {
-        SelectedResourceGroups = new HashSet<IResourceGroup>(SelectedRGs.Select(s => ResourceGroups.First(rg => rg.Id == s)));
+        SelectedResourceGroups = SelectedRGs;
 
         _resourcesLoading = true;
         _resourcesLoaded = false;
@@ -123,7 +122,7 @@
         {
             foreach (var rg in SelectedRGs)
             {
-                var thisRg = ResourceGroups.First(r => r.Id == rg);
+                var thisRg = rg;
                 var thisCfg = new AzureSharedConfiguration
                 {
                     TenantId = InjectedAzure.GetCredential().TenantId,
@@ -148,9 +147,9 @@
         _resourcesLoaded = true;
     }
 
-    protected async Task SetResources(HashSet<DiscoveredServiceConfiguration> resources)
+    protected async Task SetResources()
     {
-        SelectedResources = resources;
+        SelectedResources = SelectedRs;
         await SelectedResourcesChanged.InvokeAsync(SelectedResources);
     }
 }

@@ -21,8 +21,12 @@
     </TitleBar>
     <ButtonBar>
         @*<MudIconButton Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@(!Workflow.IsLocked)" />*@
-        <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@Startup.LockDiscovery"/>
-        <MudIconButton Icon="@Icons.Material.Filled.Outbound" OnClick="@ExecuteOnAgent"/>
+        <MudTooltip Text="Run Workflow Using Authenticated User">
+            <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@Startup.LockDiscovery"/>
+        </MudTooltip>
+        <MudTooltip Text="Submit Workflow to Agents Immediately">
+            <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.Send" OnClick="@ExecuteOnAgent"/>
+        </MudTooltip>
     </ButtonBar>
     <SecondaryDrawer>
         <SecOpsSteward.UI.Pages.Workflows.Composer.Panels.ReviewDrawer
