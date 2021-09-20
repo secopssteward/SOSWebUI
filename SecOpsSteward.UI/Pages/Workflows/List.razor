@@ -40,6 +40,11 @@
             This icon indicates whether the appropriate access rights for the plugins in the workflow have been granted to the Agents configured to run them.
             Clicking this will bring you to a page with more details about the required access.
         </IconHelp>
+
+        <IconHelp Color="@Color.Success" Icon="@Icons.Material.Filled.Bookmark"
+                  Header="Execution Log">
+            Clicking this icon will take you to the Execution Log for the selected Workflow.
+        </IconHelp>
     </HelpDrawer>
 </PageSections>
 <MudContainer MaxWidth="MaxWidth.Large">
@@ -86,6 +91,12 @@
                                         <MudIconButton Color="@Color.Error" Icon="@Icons.Material.Filled.Delete" Title="Edit" OnClick="@(() => DeleteWorkflow(context))"/>
                                     </MudTooltip>
                                 }
+                                
+                                @* ----- *@
+
+                                <MudTooltip Text="Execution Log">
+                                    <MudIconButton Color="Color.Success" Icon="@Icons.Material.Filled.Bookmark" Link="@("/workflows/executions/" + context.WorkflowId)"/>
+                                </MudTooltip>
 
                                 @* ----- *@
 

@@ -1,0 +1,86 @@
+﻿@page "/workflows/executions/{WorkflowId:guid}"
+@using SecOpsSteward.Data.Workflow
+@using SecOpsSteward.UI.Pages.Workflows.Dialogs
+
+<PageSections>
+    <HelpDrawer>
+        <MudText Typo="Typo.h6">Workflow Execution List</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            This page allows you to review the execution log of individual Workflows registered with SecOps Steward.
+        </MudText>
+    </HelpDrawer>
+</PageSections>
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudGrid>
+        <MudItem md="12">
+            <MudPaper Elevation="2" Class="p-0">
+                <MudTable T="WorkflowExecutionModel" Elevation="0" Items="@WorkflowExecutions" @bind-SelectedItem="@SelectedNode" Hover="true" Striped="true">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">Execution Log for Workflow @WorkflowId.ShortId()</MudText>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<WorkflowExecutionModel, object>(x => x.ExecutionId)">Id</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<WorkflowExecutionModel, object>(x => x.RunStarted)">Run Started</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<WorkflowExecutionModel, object>(x => x.RecurrenceId)">Recurrence</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<WorkflowExecutionModel, object>(x => x.ApproversString)">Approvers</MudTableSortLabel>
+                        </MudTh>
+                        <MudTh>
+                            <MudTableSortLabel SortBy="new Func<WorkflowExecutionModel, object>(x => x.WorkflowReceipt.Receipts.All(r => r.StepExecutionResult == SecOpsSteward.Shared.Messages.ResultCodes.RanPluginOk))">Success?</MudTableSortLabel>
+                        </MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Id">@context.ExecutionId.ShortId()</MudTd>
+                        <MudTd DataLabel="Run Started">@context.RunStarted</MudTd>
+                        <MudTd DataLabel="Recurrence">@context.RecurrenceId</MudTd>
+                        <MudTd DataLabel="Approvers">@context.ApproversString</MudTd>
+                        <MudTd DataLabel="Success?">
+                            @{
+                                var numFailed = context.WorkflowReceipt.Receipts.Count(r => r.StepExecutionResult != SecOpsSteward.Shared.Messages.ResultCodes.RanPluginOk);
+                                if (numFailed == 0) {
+                                    <MudBadge Color="Color.Success">Yes</MudBadge>
+                                }
+                                else {
+                                    <MudBadge Color="Color.Warning">@numFailed Failed</MudBadge>
+                                }
+                            }</MudTd>
+                        @* TODO: "N Failed" *@
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] {10, 25}"/>
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+            @if (SelectedNode != null)
+            {
+                <MudPaper Elevation="2" Class="p-0">
+                    <SecOpsSteward.UI.Pages.Workflows.Composer.Messages.WorkflowReceiptComponent WorkflowReceipt="@SelectedNode.WorkflowReceipt" />
+                </MudPaper>
+            }
+
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+
+@code
+{
+    [Parameter]
+    public Guid WorkflowId { get; set; }
+
+    protected List<WorkflowExecutionModel> WorkflowExecutions { get; set; }
+
+    protected WorkflowExecutionModel SelectedNode { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        WorkflowExecutions = await DbContext.WorkflowExecutions.Where(wf => wf.WorkflowId == WorkflowId).ToListAsync();
+    }
+}

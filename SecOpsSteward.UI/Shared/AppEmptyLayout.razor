@@ -42,6 +42,7 @@
         // Process WF receipts back into the database
         MessageProcessor.SubscribeWorkflowReceipt(async wfr =>
         {
+            // TODO: Group these together by adding to a queue and keeping a timer for (if nothing is received within 5-10s, fire)
             using (var cxt = DbContextFactory.CreateDbContext())
             {
                 var match = cxt.WorkflowExecutions.FirstOrDefault(wem => wem.ExecutionId == wfr.ExecutionId);
