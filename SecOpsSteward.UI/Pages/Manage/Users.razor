@@ -32,10 +32,10 @@
                             <MudTableSortLabel InitialDirection="SortDirection.Ascending" SortBy="new Func<UserModel, object>(x => x.Username)">Username</MudTableSortLabel>
                         </MudTh>
                         <MudTh>
-                            User Roles
+                            <MudTableSortLabel SortBy="new Func<UserModel, object>(x => x.DisplayName)">Display Name</MudTableSortLabel>
                         </MudTh>
                         <MudTh>
-                            <MudTableSortLabel SortBy="new Func<UserModel, object>(x => x.DisplayName)">Display Name</MudTableSortLabel>
+                            User Roles
                         </MudTh>
                         <MudTh></MudTh>
                     </HeaderContent>

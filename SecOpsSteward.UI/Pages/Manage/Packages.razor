@@ -163,7 +163,7 @@
             }
 
     // get local packages
-            LocalContainerModels = await DbContext.Containers.Include(c => c.ManagedServices).ToListAsync();
+            LocalContainerModels = await DbContext.Containers.Include(c => c.ManagedServices).ThenInclude(ms => ms.Plugins).ToListAsync();
 
     // resolve differences
             PublicContainerModels.RemoveAll(pub => LocalContainerModels.Any(local => pub.ContainerId == local.ContainerId));
