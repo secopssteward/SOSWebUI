@@ -192,7 +192,7 @@ else
         if (!_newWf)
             Workflow = await DbContext.Workflows.FirstAsync(w => w.WorkflowId == WorkflowId);
 
-        Workflow.WorkflowJson = updatedWorkflow;
+        Workflow.SavedDataJson = updatedWorkflow;
         await DbContext.SaveChangesAsync();
 
         Snackbar.Add("Workflow saved successfully", Severity.Success);

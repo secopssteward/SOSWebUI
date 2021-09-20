@@ -1,5 +1,6 @@
 ﻿@layout DynamicMainLayout
 @page "/workflows/list/{WorkflowId:guid}"
+@page "/workflows/list/{WorkflowId:guid}/{ExecutionId:guid}"
 @using SecOpsSteward.UI.Pages.Workflows.Composer.Nodes
 @using SecOpsSteward.UI.Pages.Workflows.Dialogs
 @using SecOpsSteward.Shared.Messages
@@ -21,12 +22,12 @@
     </TitleBar>
     <ButtonBar>
         <MudTooltip Text="Run Workflow Using Authenticated User">
-            <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@Startup.LockDiscovery"/>
+            <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.PlayArrow" OnClick="@Execute" Disabled="@(Startup.LockDiscovery || _basedOnPreviousExecution)"/>
         </MudTooltip>
         @if (CurrentUser.Role.HasFlag(ChimeraUserRole.MessageDispatcher))
          {
         <MudTooltip Text="Submit Workflow to Agents Immediately">
-            <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.Send" OnClick="@ExecuteOnAgent"/>
+            <MudIconButton Color="Color.Inherit" Icon="@Icons.Material.Filled.Send" OnClick="@ExecuteOnAgent" Disabled="@(Startup.LockDiscovery || _basedOnPreviousExecution)"/>
         </MudTooltip>
          }
     </ButtonBar>
@@ -78,8 +79,10 @@
 
 @code {
     private PageSections _sections;
+    private bool _basedOnPreviousExecution;
 
     protected WorkflowModel Workflow { get; set; }
+    protected WorkflowExecutionModel Execution { get; set; }
 
     private WorkflowComposerComponent ComposerComponent;
 
@@ -90,6 +93,9 @@
 
     [Parameter]
     public Guid? WorkflowId { get; set; }
+
+    [Parameter]
+    public Guid? ExecutionId { get; set; }
 
     [Inject]
     protected NavigationManager NavManager { get; set; }
@@ -107,10 +113,26 @@
         Workflow = DbContext.Workflows.FirstOrDefault(w => w.WorkflowId == WorkflowId);
         if (Workflow == null) NavManager.NavigateTo("/workflows");
 
+        if (ExecutionId != null)
+            Execution = DbContext.WorkflowExecutions.FirstOrDefault(e => e.ExecutionId == ExecutionId);
+
         await Task.Run(async () =>
         {
             await Task.Delay(500);
-            await InvokeAsync(() => ComposerComponent.Load(Workflow));
+
+            if (Execution == null || Execution.BasedOnLockedWorkflow)
+                await InvokeAsync(() => ComposerComponent.Load(Workflow));
+            else
+                await InvokeAsync(() => ComposerComponent.Load(Execution.SavedWorkflow));
+
+            if (Execution != null)
+            {
+                _basedOnPreviousExecution = false;
+                foreach (var r in Execution.WorkflowReceipt.Receipts)
+                {
+                    ComposerComponent.ConsumeStepReceipt(r);
+                }
+            }
         });
     }
 

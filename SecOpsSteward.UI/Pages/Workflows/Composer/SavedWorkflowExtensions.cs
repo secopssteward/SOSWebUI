@@ -78,7 +78,7 @@ namespace SecOpsSteward.UI.Pages.Workflows.Composer
         public static ExecutionStepCollection CreateStepCollectionFromWorkflow(this WorkflowModel workflowModel)
         {
             return CreateStepCollectionFromWorkflow(
-                ChimeraSharedHelpers.GetFromSerializedString<SavedWorkflow>(workflowModel.WorkflowJson));
+                ChimeraSharedHelpers.GetFromSerializedString<SavedWorkflow>(workflowModel.SavedDataJson));
         }
 
         public static ExecutionStepCollection CreateStepCollectionFromWorkflow(this SavedWorkflow savedWorkflow)

@@ -16,13 +16,13 @@ namespace SecOpsSteward.Data.Models
         {
             get
             {
-                if (string.IsNullOrEmpty(WorkflowJson)) return null;
-                return JsonSerializer.Deserialize<SavedWorkflow>(WorkflowJson);
+                if (string.IsNullOrEmpty(SavedDataJson)) return null;
+                return JsonSerializer.Deserialize<SavedWorkflow>(SavedDataJson);
             }
-            set => WorkflowJson = JsonSerializer.Serialize(value);
+            set => SavedDataJson = JsonSerializer.Serialize(value);
         }
 
-        public string WorkflowJson { get; set; }
+        public string SavedDataJson { get; set; }
 
         [NotMapped]
         public WorkflowExecutionMessage WorkflowAuthorization

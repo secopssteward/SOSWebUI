@@ -39,10 +39,11 @@ namespace SecOpsSteward.Data
             _dbContext.WorkflowExecutions.Add(new WorkflowExecutionModel
             {
                 ExecutionId = executionId,
+                BasedOnLockedWorkflow = true,
                 Approvers = recurrence.Approvers,
                 Recurrence = recurrence,
                 RunStarted = DateTimeOffset.UtcNow,
-                Workflow = recurrence.Workflow
+                WorkflowId = recurrence.WorkflowId
             });
             recurrence.MostRecentRun = DateTimeOffset.UtcNow;
             recurrence.Approvers = new List<Guid>();

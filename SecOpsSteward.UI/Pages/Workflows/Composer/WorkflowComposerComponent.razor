@@ -1,4 +1,5 @@
-﻿@using SecOpsSteward.Plugins.Configurable
+﻿@using SecOpsSteward.Data.Workflow
+@using SecOpsSteward.Plugins.Configurable
 @using SecOpsSteward.Shared.DiscoveryWorkflow
 @using SecOpsSteward.Shared.Messages
 @using SecOpsSteward.UI.Pages.Workflows.Composer.Links
@@ -51,15 +52,21 @@
 
     public void Load(WorkflowModel value)
     {
+        LoadedWorkflow = value;
+        LoadedWorkflowId = value.WorkflowId;
+        if (!string.IsNullOrEmpty(value.SavedDataJson))
+            Load(value.SavedData);
+    }
+
+    public void Load(SavedWorkflow workflow)
+    {
         Diagram.Links.Clear();
         Diagram.Groups.ToList().ForEach(g => Diagram.RemoveGroup(g));
         Diagram.Nodes.Clear();
         Diagram.Refresh();
 
-        LoadedWorkflow = value;
-        LoadedWorkflowId = value.WorkflowId;
-        if (!string.IsNullOrEmpty(value.WorkflowJson))
-            Diagram.LoadWorkflow(value.SavedData, DbContext.Plugins.Include(p => p.ManagedService).ToList());
+        if (workflow != null)
+            Diagram.LoadWorkflow(workflow, DbContext.Plugins.Include(p => p.ManagedService).ToList());
 
         StateHasChanged();
     }

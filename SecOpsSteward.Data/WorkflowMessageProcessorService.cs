@@ -150,11 +150,14 @@ namespace SecOpsSteward.Data
 
             using (var cxt = _dbContextFactory.CreateDbContext())
             {
+                var workflow = cxt.Workflows.First(wf => wf.WorkflowId == workflowId);
                 cxt.WorkflowExecutions.Add(new Models.WorkflowExecutionModel()
                 {
                     ExecutionId = msg.ExecutionId,
                     WorkflowId = workflowId,
-                    RunStarted = DateTimeOffset.UtcNow
+                    RunStarted = DateTimeOffset.UtcNow,
+                    BasedOnLockedWorkflow = workflow.IsLocked,
+                    SavedWorkflowJson = workflow.IsLocked ? null : workflow.SavedDataJson
                 });
             }
 

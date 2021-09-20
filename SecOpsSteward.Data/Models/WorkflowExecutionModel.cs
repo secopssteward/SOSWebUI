@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text.Json;
+using SecOpsSteward.Data.Workflow;
 using SecOpsSteward.Shared.Messages;
 
 namespace SecOpsSteward.Data.Models
@@ -18,7 +19,18 @@ namespace SecOpsSteward.Data.Models
         public Guid RecurrenceId { get; set; }
         public WorkflowRecurrenceModel Recurrence { get; set; }
 
+        public bool BasedOnLockedWorkflow { get; set; }
+
         public DateTimeOffset RunStarted { get; set; }
+
+        [NotMapped]
+        public SavedWorkflow SavedWorkflow
+        {
+            get => JsonSerializer.Deserialize<SavedWorkflow>(SavedWorkflowJson);
+            set => SavedWorkflowJson = JsonSerializer.Serialize(value);
+        }
+
+        public string SavedWorkflowJson { get; set; }
 
         [NotMapped]
         public WorkflowReceipt WorkflowReceipt

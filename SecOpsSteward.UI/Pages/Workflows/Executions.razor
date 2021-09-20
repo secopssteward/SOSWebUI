@@ -35,6 +35,9 @@
                         <MudTh>
                             <MudTableSortLabel SortBy="new Func<WorkflowExecutionModel, object>(x => x.WorkflowReceipt.Receipts.All(r => r.StepExecutionResult == SecOpsSteward.Shared.Messages.ResultCodes.RanPluginOk))">Success?</MudTableSortLabel>
                         </MudTh>
+                        <MudTh>
+                            Visualize
+                        </MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Id">@context.ExecutionId.ShortId()</MudTd>
@@ -50,8 +53,13 @@
                                 else {
                                     <MudBadge Color="Color.Warning">@numFailed Failed</MudBadge>
                                 }
-                            }</MudTd>
-                        @* TODO: "N Failed" *@
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Visualize">
+                            <MudTooltip Text="Visualize Workflow Execution Result">
+                                <MudIconButton Icon="@Icons.Material.Filled.Preview" Link="@($"/workflows/list/{WorkflowId}/{context.ExecutionId}")" />
+                            </MudTooltip>
+                        </MudTd>
                     </RowTemplate>
                     <PagerContent>
                         <MudTablePager PageSizeOptions="new[] {10, 25}"/>
