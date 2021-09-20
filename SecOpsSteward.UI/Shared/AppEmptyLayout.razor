@@ -38,5 +38,19 @@
         }
         else
             MessageProcessor.StartBackgroundTask(); // start polling for messages
+
+        // Process WF receipts back into the database
+        MessageProcessor.SubscribeWorkflowReceipt(async wfr =>
+        {
+            using (var cxt = DbContextFactory.CreateDbContext())
+            {
+                var match = cxt.WorkflowExecutions.FirstOrDefault(wem => wem.ExecutionId == wfr.ExecutionId);
+                if (match == null) return;
+
+                Snackbar.Add($"Received receipt for Workflow {wfr.WorkflowId.ShortId()}. Migrating decrypted receipt to storage.");
+                match.WorkflowReceipt = wfr;
+                await cxt.SaveChangesAsync();
+            }
+        });
     }
 }

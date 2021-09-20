@@ -35,8 +35,10 @@ namespace SecOpsSteward.Data
 
         public async Task ProcessRecurrence(WorkflowRecurrenceModel recurrence)
         {
+            var executionId = Guid.NewGuid();
             _dbContext.WorkflowExecutions.Add(new WorkflowExecutionModel
             {
+                ExecutionId = executionId,
                 Approvers = recurrence.Approvers,
                 Recurrence = recurrence,
                 RunStarted = DateTimeOffset.UtcNow,
@@ -47,6 +49,7 @@ namespace SecOpsSteward.Data
             await _dbContext.SaveChangesAsync();
 
             var msg = recurrence.Workflow.WorkflowAuthorization;
+            msg.ExecutionId = executionId;
             foreach (var step in msg.GetNextSteps())
             {
                 var encrypted = await msg.Encrypt(_cryptoService, step.RunningEntity);

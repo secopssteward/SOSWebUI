@@ -170,7 +170,7 @@
         model.LastModified = DateTime.UtcNow;
 
         var steps = model.CreateStepCollectionFromWorkflow();
-        var wfAuth = new WorkflowExecutionMessage(CurrentUser.UserId, steps);
+        var wfAuth = new WorkflowExecutionMessage(model.WorkflowId, CurrentUser.UserId, steps);
         await wfAuth.Sign(CryptoService, CurrentUser.UserId, CurrentUser.Name);
 
         model.WorkflowAuthorization = wfAuth;

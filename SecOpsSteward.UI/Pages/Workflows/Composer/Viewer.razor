@@ -121,7 +121,7 @@
         var steps = Workflow.CreateStepCollectionFromWorkflow();
         steps.ForEach(s => s.RunningEntity = CurrentUser.UserId);
 
-        var wfGuid = await MessageProcessor.EnqueueImmediateRun(steps);
+        var executionId = await MessageProcessor.EnqueueImmediateRun(WorkflowId.GetValueOrDefault(), steps);
         MessageProcessor.SubscribeStepReceipt(async s => { await InvokeAsync(() => { ComposerComponent.ConsumeStepReceipt(s); }); });
         MessageProcessor.SubscribeWorkflowReceipt(async s =>
         {
@@ -138,7 +138,7 @@
     private async Task ExecuteOnAgent()
     {
         var steps = Workflow.CreateStepCollectionFromWorkflow();
-        var wfGuid = await MessageProcessor.EnqueueImmediateRun(steps);
+        var executionId = await MessageProcessor.EnqueueImmediateRun(WorkflowId.GetValueOrDefault(), steps);
         MessageProcessor.SubscribeStepReceipt(async s => { await InvokeAsync(() => { ComposerComponent.ConsumeStepReceipt(s); }); });
         MessageProcessor.SubscribeWorkflowReceipt(async s =>
         {

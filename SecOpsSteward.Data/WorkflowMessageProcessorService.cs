@@ -141,19 +141,29 @@ namespace SecOpsSteward.Data
             }
         }
 
-        public async Task<Guid> EnqueueImmediateRun(ExecutionStepCollection steps)
+        public async Task<Guid> EnqueueImmediateRun(Guid workflowId, ExecutionStepCollection steps)
         {
-            var msg = new WorkflowExecutionMessage(_currentUser.UserId, steps);
+            var msg = new WorkflowExecutionMessage(workflowId, _currentUser.UserId, steps);
             msg.Conditions.ValidFrom = DateTimeOffset.UtcNow;
             msg.Conditions.ValidTo = DateTimeOffset.UtcNow.AddMinutes(15);
             msg.Conditions.MaximumNumberOfRuns = 1;
+
+            using (var cxt = _dbContextFactory.CreateDbContext())
+            {
+                cxt.WorkflowExecutions.Add(new Models.WorkflowExecutionModel()
+                {
+                    ExecutionId = msg.ExecutionId,
+                    WorkflowId = workflowId,
+                    RunStarted = DateTimeOffset.UtcNow
+                });
+            }
 
             await Task.WhenAll(msg.Steps.Select(s =>
                 s.Sign(_cryptoService, _currentUser.UserId, $"{_currentUser.UserId.ShortId}")));
             await msg.Sign(_cryptoService, _currentUser.UserId, $"{_currentUser.UserId.ShortId}");
 
             await Enqueue(msg);
-            return msg.WorkflowId;
+            return msg.ExecutionId;
         }
 
         public async Task Enqueue(WorkflowExecutionMessage msg)
