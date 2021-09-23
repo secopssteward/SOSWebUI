@@ -16,6 +16,8 @@ namespace SecOpsSteward.Data.Models
 
         public string Name { get; set; }
 
+        public string Image { get; set; }
+
         public string Description { get; set; }
 
         [NotMapped]
@@ -45,6 +47,7 @@ namespace SecOpsSteward.Data.Models
                     svc.ServiceId.GetComponents(PackageIdentifierComponents.Container |
                                                 PackageIdentifierComponents.Service),
                 Name = svc.Name,
+                Image = svc.Image,
                 Description = svc.Description,
                 Contract = svc.ParameterCollection.Clone(),
                 Templates = svc.Templates.Select(template => WorkflowTemplateModel.FromMetadata(template)).ToList(),

@@ -3,7 +3,15 @@
 @using SecOpsSteward.Plugins
 <MudPaper Class="@("default-node " + Classes)" Style="@Styles">
     <MudGrid Spacing="0">
-        <MudItem xs="12">
+        <MudItem>
+            @if (Node.Package.ManagedService.Image != null)
+            {
+                <div style="width:2em;display:inline-block" class="icon-baseline-adjustment mr-1">
+                    @((MarkupString)Node.Package.ManagedService.Image)
+                </div>
+            }
+        </MudItem>
+        <MudItem xs="10">
             <MudText Typo="Typo.h6" Align="Align.Center" Style="line-height: 1.2em;">
                 @Node.Package.Name
             </MudText>

@@ -23,7 +23,14 @@
                     <MudExpansionPanels Dense="true" DisableGutters="true">
                         @foreach (var item in Services)
                         {
-                            <MudExpansionPanel Dense="true" Text="@item.Name" DisableGutters="true">
+                            <MudExpansionPanel Dense="true" DisableGutters="true">
+                                <TitleContent>
+                                    <div style="width:1em;display:inline-block" class="icon-baseline-adjustment mr-1">
+                                        @((MarkupString)item.Image)
+                                    </div>
+                                    @item.Name
+                                </TitleContent>
+                                <ChildContent>
                                 @foreach (var template in item.Templates.Where(t => t.Participants.Where(p => p.PackageId != Guid.Empty).Count() > 1))
                                 {
                                     <MudButton EndIcon="@Icons.Material.Filled.ChevronRight"
@@ -50,6 +57,7 @@
                                         @plugin.Name
                                     </MudButton>
                                 }
+                                </ChildContent>
                             </MudExpansionPanel>
                         }
                     </MudExpansionPanels>

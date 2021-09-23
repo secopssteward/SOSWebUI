@@ -56,7 +56,15 @@
                         <MudTd DataLabel="Services">
                             @foreach (var s in context.ManagedServices)
                             {
-                                <p>@s.Name</p>
+                                <p>
+                                    @if (s.Image != null)
+                                    {
+                                        <div style="width:1em;display:inline-block" class="icon-baseline-adjustment mr-1">
+                                            @((MarkupString)s.Image)
+                                        </div>
+                                    }
+                                    @s.Name
+                                </p>
                             }
                         </MudTd>
                         <MudTd DataLabel="Plugins">
@@ -108,7 +116,15 @@
                         <MudTd DataLabel="Services">
                             @foreach (var s in context.ManagedServices)
                             {
-                                <p>@s.Name</p>
+                                <p>
+                                    @if (s.Image != null)
+                                    {
+                                        <div style="width:1em;display:inline-block" class="icon-baseline-adjustment mr-1">
+                                            @((MarkupString)s.Image)
+                                        </div>
+                                    }
+                                    @s.Name
+                                </p>
                             }
                         </MudTd>
                         <MudTd DataLabel="Plugins">
